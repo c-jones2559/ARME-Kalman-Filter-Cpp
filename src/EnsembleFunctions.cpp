@@ -94,9 +94,9 @@ std::array<std::unordered_map<std::string, nc::NdArray<double>>, 6> generate_ens
         t_num[player] = numArr;
     }
     std::unordered_map<std::string, nc::NdArray<double>> A_num;
-    for (const auto& player : players) {
-        nc::NdArray<double> numArr(A[player]);
-        A_num[player] = numArr;
+    for (const auto& pair : pairs) {
+        nc::NdArray<double> numArr(A[pair]);
+        A_num[pair] = numArr;
     }
 
 
