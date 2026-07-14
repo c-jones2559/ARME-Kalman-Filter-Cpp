@@ -353,7 +353,7 @@ std::tuple<std::vector<nc::NdArray<double>>,
         }
     }
 
-    double N = s.at("1").numRows() - 1;
+    double N = s.at("1").size() - 1; 
 
     int P = K * (K - 1); // Dimension of your state vector (12)
 
@@ -445,16 +445,7 @@ std::tuple<std::vector<nc::NdArray<double>>,
         // Make vector with s at time n
         nc::NdArray<double> s_n_vec(K, 1);
         for (int i = 0; i < K; i++) {
-            if (s.find("1") == s.end()) {
-                std::cout << "ERROR: player ID " << players[i] << " not found in map s!" << std::endl;
-            } else {
-                auto& mat = s.at(players[i]);
-                if (n >= mat.numRows() || 0 >= mat.numCols()) {
-                    std::cout << "ERROR: index (" << n << ", 0) out of bounds for matrix size " 
-                            << mat.numRows() << "x" << mat.numCols() << std::endl;
-                }
-            }
-            s_n_vec(i, 0) = s.at(players[i])(n, 0);
+            s_n_vec(i, 0) = s.at(players[i])[n]; 
         }
 
         // Predict alpha
