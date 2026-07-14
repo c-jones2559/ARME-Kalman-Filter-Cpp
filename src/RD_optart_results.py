@@ -59,7 +59,7 @@ def run_single_experiment(K, N, sigma_v_true, alpha_type, ideal, optimize_flags,
     # generate data
     Tmkp = {k: [np.nan] + N * [500] for k in players}
     sigma_v_dict = {k: sigma_v_true for k in players}
-    s_true, s_win, r, A, t, T = generate_ensemble_data(N, Tmkp, alpha, sigma_v_dict, w)
+    s_true, s_win, r, A, t, T = ensemble_backend.generate_ensemble_data(N, Tmkp, alpha, sigma_v_dict, w)
     s_input = s_true if ideal else s_win
 
     s_win_values = np.concatenate([s_win[p][~np.isnan(s_win[p])] for p in players])
@@ -99,7 +99,7 @@ def run_single_experiment(K, N, sigma_v_true, alpha_type, ideal, optimize_flags,
             alpha_KF_val = params[idx] if optimize_flags["alpha_KF_init"] else 1 / K
             alpha_KF_init = np.array([alpha_KF_val] * n_alpha)
 
-            _, _, s_hat, *_ = KF_ensemble(
+            _, _, s_hat, *_ = ensemble_backend.KF_ensemble(
                 s=s_input,
                 A=A,
                 Sigma_v_init=Sigma_v,
@@ -149,7 +149,7 @@ def run_single_experiment(K, N, sigma_v_true, alpha_type, ideal, optimize_flags,
         alpha_KF_init = np.array([1 / K] * n_alpha)
 
     # run KF
-    _, _, s_hat, _, alpha_hat, *_ = KF_ensemble(
+    _, _, s_hat, _, alpha_hat, *_ = ensemble_backend.KF_ensemble(
         s=s_win,
         A=A,
         Sigma_v_init=Sigma_v,
@@ -162,12 +162,12 @@ def run_single_experiment(K, N, sigma_v_true, alpha_type, ideal, optimize_flags,
 
     # run bGLS for alpha and s timeseries
     # o_rm = np.array([s_true[p] for p in players]).T   # onset matrix
-    alpha_bgls, _, _ = bGLS_ensemble(np.array(list(t.values())).T[1:, ])
-    s_bgls = s_from_bGLS_ensemble(alpha_bgls, A)
+    alpha_bgls, _, _ = ensemble_backend.bGLS_ensemble(np.array(list(t.values())).T[1:, ])
+    s_bgls = ensemble_backend.s_from_bGLS_ensemble(alpha_bgls, A)
 
     # plot s true vs s KF vs s bGLS
     if plot:
-        met = pd.concat([pd.DataFrame(metrics_ensemble(s_hat, s_true)), pd.DataFrame(metrics_ensemble(s_bgls, s_true))], axis = 0)
+        met = pd.concat([pd.DataFrame(ensemble_backend.metrics_ensemble(s_hat, s_true)), pd.DataFrame(ensemble_backend.metrics_ensemble(s_bgls, s_true))], axis = 0)
         met.index = ['KF corr', 'KF var', 'bGLS corr', 'bGLS var']
         fig, axs = plt.subplots(K, 1, figsize=(10, 2.5 * K), sharex=True)
         fig.suptitle("Estimated s vs. True s", fontsize=16)
@@ -196,7 +196,7 @@ def run_single_experiment(K, N, sigma_v_true, alpha_type, ideal, optimize_flags,
 
         print(met)
 
-    return metrics_ensemble(s_hat, s_true)
+    return ensemble_backend.metrics_ensemble(s_hat, s_true)
 
 # run multiple expts & average metrics
 def run_multiple_experiments(n_runs, config, label="", plot_first=True):

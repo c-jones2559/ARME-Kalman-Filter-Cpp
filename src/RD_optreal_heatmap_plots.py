@@ -22,6 +22,12 @@ import io
 from scipy.linalg import block_diag
 from scipy.optimize import minimize
 
+# import c++ functions
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+import ensemble_backend
+
 # PLOS guideline safe
 mpl.rcParams.update({
     "font.family": "sans-serif",
@@ -89,107 +95,6 @@ def process_ensemble_data(leader, rep, w, filepath=filename):
 
     return r_dp, r_nr, r_sp, s_dp_win, s_nr_win, s_sp_win, A_dp, A_nr, A_sp, t_dp, t_nr, t_sp
 
-############################
-## ENSEMBLE KALMAN FILTER ##
-############################
-
-def KF_ensemble(s, A, Sigma_v_init, Sigma_w, alpha_KF_init, Sigma_alpha_init, w):
-    K = len(s) # Number of players
-
-    players = [str(k) for k in range(1, K + 1)]
-    pairs = [str(k1) + str(k2) for k1 in range(1, K + 1) for k2 in range(1, K + 1) if k1 != k2]
-
-    N = s['1'].shape[0] - 1
-
-    # Initialise predictions for alpha (with NaN for n = 0 and n = 1)
-    alpha_KF_predict = 2*[np.nan]
-    Sigma_alpha_KF_predict = 2*[np.nan]
-
-    # Initialise predictions for s (with NaN for n = 0 and n = 1)
-    s_KF_predict = 2*[K*[np.nan]]
-    Sigma_s_KF_predict = 2*[np.nan]
-
-    # Initialise updates for alpha (with n = 0 and n = 1)
-    gain_KF = 2*[np.nan]
-    alpha_KF_update = [K*(K - 1)*[np.nan], alpha_KF_init]
-    Sigma_alpha_KF_update = [np.nan, Sigma_alpha_init]
-
-    # Initialise dynamic estimation of sigma_v [TESTING] (with n = 0 and n = 1)
-    Sigma_v = [np.nan, Sigma_v_init]
-
-    # Initialise matrix F
-    F = [np.nan, np.nan]
-
-    log_l = 0.0 # RD
-
-    for n in range(2, N + 1):
-        # Build matrix F_n
-        F_list = []
-        for player1 in players:
-            A_i = []
-            for player2 in players:
-                if player2 != player1:
-                    A_i.append(-A[player1 + player2][n - 1])
-            F_list.append(A_i)
-        F.append(block_diag(*F_list))
-
-        # Make vector with s at time n
-        s_n_vec = np.array([s[player][n] for player in players])
-
-        # Predict alpha
-        alpha_KF_predict.append(alpha_KF_update[n - 1])
-        Sigma_alpha_KF_predict.append(Sigma_alpha_KF_update[n - 1] + Sigma_w)
-
-        # Predict s
-        s_KF_predict.append(F[n] @ alpha_KF_predict[n])
-        Sigma_s_KF_predict.append(F[n] @ Sigma_alpha_KF_predict[n] @ F[n].T + Sigma_v[n - 1])
-
-        # RD: Innovation
-        innov = s_n_vec - (F[n] @ alpha_KF_predict[n])
-        S_innov = np.linalg.inv(F[n] @ Sigma_alpha_KF_predict[n] @ F[n].T + Sigma_v[n - 1])
-        # RD: Log-likelihood contribution
-        log_l += -0.5 * (np.log(np.linalg.det(2*np.pi*(F[n] @ Sigma_alpha_KF_predict[n] @ F[n].T + Sigma_v[n - 1]))) + innov.T @ S_innov @ innov)
-
-        # Update alpha
-        gain_KF.append(Sigma_alpha_KF_predict[n] @ F[n].T @ np.linalg.inv(Sigma_s_KF_predict[n]))
-        alpha_KF_update.append(alpha_KF_predict[n] + gain_KF[n] @ (s_n_vec - s_KF_predict[n]))
-        Sigma_alpha_KF_update.append(Sigma_alpha_KF_predict[n] - gain_KF[n] @ F[n] @ Sigma_alpha_KF_predict[n])
-
-        Sigma_v.append(Sigma_v_init)
-
-    # Prepare outputs (the most important ones)
-    s_KF_predict = dict(zip(players, np.array(s_KF_predict).T))
-    alpha_KF_update = dict(zip(pairs, np.array(alpha_KF_update).T))
-
-    return s_KF_predict, alpha_KF_update, log_l # RD: got rid of unneeded outputs
-
-###############################################
-## RECONSTRUCT r FROM s_estimated (ensemble) ##
-###############################################
-
-def r_from_s_ensemble(s_est, r, w = 5):
-    N = r['1'].shape[0] - 1
-
-    players = r.keys()
-
-    r_est = {}
-
-    for player in players:
-        r_est[player] = 2*[np.nan] # n = 0 and n = 1
-
-    for n in range(2, w + 1):
-        for player in players:
-            r_est[player].append(np.nan)
-
-    for n in range(w + 1, N + 1):
-        for player in players:
-            r_est[player].append(s_est[player][n] + np.mean(r[player][(n - w - 1 + 2):(n - 1 + 2)]))
-
-    for player in players:
-        r_est[player] = np.array(r_est[player])
-
-    return r_est
-
 # combined loss: weighted (sum of mse s pred vs s true) AND (mse of pairwise asynchronies)
 weight = 1.0
 def combined_loss(r_dict, s_win, A, w, KF_func, params, weight=weight):
@@ -223,7 +128,7 @@ def combined_loss(r_dict, s_win, A, w, KF_func, params, weight=weight):
         mse_s.append(mse)
 
     # mse for asynchronies (pairwise)
-    r_est = r_from_s_ensemble(s_hat, r_dict, w)
+    r_est = ensemble_backend.r_from_s_ensemble(s_hat, r_dict, w)
     pairs = [str(i) + str(j) for i in players for j in players if i != j]
 
     mse_async = []
@@ -261,7 +166,7 @@ def compute_std_and_lag1(A_true, r_est):
 
 def run_model(params, r_data, s_data, A, w):
     # run KF with params dict, return r_est only
-    s_hat, _, _ = KF_ensemble(
+    s_hat, _, _ = ensemble_backend.KF_ensemble(
         s=s_data,
         A=A,
         Sigma_v_init=np.diag([params['sigma_v']] * len(s_data)),
@@ -270,7 +175,7 @@ def run_model(params, r_data, s_data, A, w):
         Sigma_alpha_init=np.diag([params['sigma_alpha']] * (len(s_data)*(len(s_data)-1))),
         w=w
     )
-    r_est = r_from_s_ensemble(s_hat, r_data, w)
+    r_est = ensemble_backend.r_from_s_ensemble(s_hat, r_data, w)
     return r_est
 
 # heatmap plots only
