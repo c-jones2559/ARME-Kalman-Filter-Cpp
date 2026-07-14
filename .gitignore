@@ -67,3 +67,9 @@ vcpkg_installed/
 # test output & cache
 Testing/
 .cache/
+
+# Dependencies
+NumCpp/
+_deps/
+src/rapidcsv.h
+
