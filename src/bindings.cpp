@@ -35,11 +35,6 @@ nc::NdArray<double> py_to_nc(py::array_t<double> arr) {
 PYBIND11_MODULE(ensemble_backend, m) {
     m.doc() = "Lightning fast C++ backend for ensemble tracking algorithms";
 
-    // Bind Metric
-    py::class_<Metric>(m, "Metric")
-        .def_readonly("corr", &Metric::corr)
-        .def_readonly("std", &Metric::std);
-
     // Bind EstBGLS
     py::class_<EstBGLS>(m, "EstBGLS")
         .def_readonly("alpha", &EstBGLS::alpha)
@@ -190,21 +185,26 @@ PYBIND11_MODULE(ensemble_backend, m) {
     }, "Generates synthetic ensemble data");
 
 
-    m.def("KF_ensemble", [](std::unordered_map<std::string, py::array_t<double>> py_s,
-                            const std::unordered_map<std::string, std::vector<double>>& A,
+m.def("KF_ensemble", [](std::unordered_map<std::string, py::array_t<double>> py_s,
+                            std::unordered_map<std::string, py::array_t<double>> py_A,
                             py::array_t<double> py_Sigma_v_init,
                             double Sigma_w,
-                            double alpha_KF_init,
-                            double Sigma_alpha_init,
+                            py::array_t<double> py_alpha_KF_init,
+                            py::array_t<double> py_Sigma_alpha_init,
                             bool est_Sigma_v,
                             double w) {
         
         std::unordered_map<std::string, nc::NdArray<double>> cpp_s;
         for (auto& [k, v] : py_s) cpp_s[k] = py_to_nc(v);
+
+        std::unordered_map<std::string, nc::NdArray<double>> cpp_A;
+        for (auto& [k, v] : py_A) cpp_A[k] = py_to_nc(v);
         
         nc::NdArray<double> cpp_Sigma_v_init = py_to_nc(py_Sigma_v_init);
+        nc::NdArray<double> cpp_alpha_KF_init = py_to_nc(py_alpha_KF_init);
+        nc::NdArray<double> cpp_Sigma_alpha_init = py_to_nc(py_Sigma_alpha_init);
 
-        auto result = KF_ensemble(cpp_s, A, cpp_Sigma_v_init, Sigma_w, alpha_KF_init, Sigma_alpha_init, est_Sigma_v, w);
+        auto result = KF_ensemble(cpp_s, cpp_A, cpp_Sigma_v_init, Sigma_w, cpp_alpha_KF_init, cpp_Sigma_alpha_init, est_Sigma_v, w);
 
         // Local lambdas for translating the outputs
         auto map_nc_to_py = [](const std::unordered_map<std::string, nc::NdArray<double>>& in_map) {
@@ -218,22 +218,22 @@ PYBIND11_MODULE(ensemble_backend, m) {
             return out;
         };
 
+        // Note the swapped tuple indices to match the new C++ return order (0 and 4)
         return py::make_tuple(
-            map_nc_to_py(std::get<0>(result)),
+            vec_nc_to_py(std::get<0>(result)),
             vec_nc_to_py(std::get<1>(result)),
             map_nc_to_py(std::get<2>(result)),
             vec_nc_to_py(std::get<3>(result)),
-            vec_nc_to_py(std::get<4>(result)),
+            map_nc_to_py(std::get<4>(result)),
             vec_nc_to_py(std::get<5>(result)),
             vec_nc_to_py(std::get<6>(result)),
             vec_nc_to_py(std::get<7>(result))
         );
     }, "Standalone KF_ensemble wrapper",
        py::arg("s"), py::arg("A"), py::arg("Sigma_v_init"), py::arg("Sigma_w") = 0.1,
-       py::arg("alpha_KF_init") = 0.25, py::arg("Sigma_alpha_init") = 0.3, py::arg("est_Sigma_v") = false, py::arg("w") = 5.0);
+       py::arg("alpha_KF_init"), py::arg("Sigma_alpha_init"), py::arg("est_Sigma_v") = false, py::arg("w") = 5.0);
 
-
-    m.def("metrics_ensemble", [](std::unordered_map<std::string, py::array_t<double>> py_s_pred,
+m.def("metrics_ensemble", [](std::unordered_map<std::string, py::array_t<double>> py_s_pred,
                                  std::unordered_map<std::string, py::array_t<double>> py_s_ref) {
         
         std::unordered_map<std::string, nc::NdArray<double>> cpp_s_pred;
@@ -242,7 +242,17 @@ PYBIND11_MODULE(ensemble_backend, m) {
         for (auto& [k, v] : py_s_pred) cpp_s_pred[k] = py_to_nc(v);
         for (auto& [k, v] : py_s_ref) cpp_s_ref[k] = py_to_nc(v);
 
-        return metrics_ensemble(cpp_s_pred, cpp_s_ref);
+        auto cpp_metrics = metrics_ensemble(cpp_s_pred, cpp_s_ref);
+        
+        py::dict py_metrics;
+        for (const auto& [player, vals] : cpp_metrics) {
+            py::dict py_vals;
+            for (const auto& [metric_name, val] : vals) {
+                py_vals[py::str(metric_name)] = nc_to_py(val);
+            }
+            py_metrics[py::str(player)] = py_vals;
+        }
+        return py_metrics;
         
     }, "Calculates correlation and standard deviation metrics");
 }

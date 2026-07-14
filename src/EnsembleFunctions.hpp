@@ -15,11 +15,6 @@ struct VirtuosoRow {
     std::vector<double> ioi_values;
 };
 
-struct Metric {
-    nc::NdArray<double> corr;
-    nc::NdArray<double> std;
-};
-
 struct EstBGLS {
     std::unordered_map<std::string, double> alpha;
     double sigma_v;
@@ -56,20 +51,20 @@ std::array<std::unordered_map<std::string, nc::NdArray<double>>, 6> generate_ens
 
 std::tuple<std::unordered_map<std::string, double>, double, double> bGLS_ensemble(nc::NdArray<double> o_rm);
 
-std::tuple<std::unordered_map<std::string, nc::NdArray<double>>, 
-           std::vector<nc::NdArray<double>>, 
-           std::unordered_map<std::string, nc::NdArray<double>>, 
-           std::vector<nc::NdArray<double>>, 
-           std::vector<nc::NdArray<double>>, 
-           std::vector<nc::NdArray<double>>, 
-           std::vector<nc::NdArray<double>>, 
-           std::vector<nc::NdArray<double>>> 
+std::tuple<std::vector<nc::NdArray<double>>,
+           std::vector<nc::NdArray<double>>,
+           std::unordered_map<std::string, nc::NdArray<double>>,
+           std::vector<nc::NdArray<double>>,
+           std::unordered_map<std::string, nc::NdArray<double>>,
+           std::vector<nc::NdArray<double>>,
+           std::vector<nc::NdArray<double>>,
+           std::vector<nc::NdArray<double>>>
 KF_ensemble(const std::unordered_map<std::string, nc::NdArray<double>>& s,
-            const std::unordered_map<std::string, std::vector<double>>& A,
+            const std::unordered_map<std::string, nc::NdArray<double>>& A,
             const nc::NdArray<double>& Sigma_v_init,
-            double Sigma_w = 0.1,
-            double alpha_KF_init = 0.25,
-            double Sigma_alpha_init = 0.3,
+            double Sigma_w,
+            nc::NdArray<double> alpha_KF_init,
+            nc::NdArray<double> Sigma_alpha_init,
             bool est_Sigma_v = false,
             double w = 5);
 
@@ -91,7 +86,7 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>,
            std::unordered_map<std::string, nc::NdArray<double>>> 
 process_ensemble_data(std::string leader, int rep, int w = 5);
 
-std::unordered_map<std::string, Metric> metrics_ensemble(
+std::unordered_map<std::string, std::unordered_map<std::string, nc::NdArray<double>>> metrics_ensemble(
     const std::unordered_map<std::string, nc::NdArray<double>>& s_pred,
     const std::unordered_map<std::string, nc::NdArray<double>>& s_ref);
 

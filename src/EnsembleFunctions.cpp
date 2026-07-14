@@ -323,22 +323,22 @@ std::tuple<std::unordered_map<std::string, double>, double, double> bGLS_ensembl
  * ENSEMBLE KALMAN FILTER
  */
 
-std::tuple<std::unordered_map<std::string, nc::NdArray<double>>, // alpha_KF_predict
-           std::vector<nc::NdArray<double>>, // Sigma_alpha_KF_predict
-           std::unordered_map<std::string, nc::NdArray<double>>, // s_KF_predict
-           std::vector<nc::NdArray<double>>, // Sigma_s_KF_predict
-           std::vector<nc::NdArray<double>>, // alpha_KF_update
-           std::vector<nc::NdArray<double>>, // Sigma_alpha_KF_update
-           std::vector<nc::NdArray<double>>, // gain_KF
-           std::vector<nc::NdArray<double>>> // Sigma_v
+std::tuple<std::vector<nc::NdArray<double>>, 
+           std::vector<nc::NdArray<double>>, 
+           std::unordered_map<std::string, nc::NdArray<double>>, 
+           std::vector<nc::NdArray<double>>, 
+           std::unordered_map<std::string, nc::NdArray<double>>, 
+           std::vector<nc::NdArray<double>>, 
+           std::vector<nc::NdArray<double>>, 
+           std::vector<nc::NdArray<double>>> 
            KF_ensemble(const std::unordered_map<std::string, nc::NdArray<double>>& s,
-                       const std::unordered_map<std::string, std::vector<double>>& A,
+                       const std::unordered_map<std::string, nc::NdArray<double>>& A,
                        const nc::NdArray<double>& Sigma_v_init,
-                       double Sigma_w, // 0.1
-                       double alpha_KF_init, // 0.25
-                       double Sigma_alpha_init, // 0.3
-                       bool est_Sigma_v, // false
-                       double w) { // 5
+                       double Sigma_w, 
+                       nc::NdArray<double> alpha_KF_init, 
+                       nc::NdArray<double> Sigma_alpha_init,
+                       bool est_Sigma_v, 
+                       double w) {
     int K = s.size(); // Number of players
 
     std::vector<std::string> players;
@@ -375,17 +375,24 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>, // alpha_KF_pre
     Sigma_s_KF_predict.push_back(nc::full<double>(nc::Shape(K, K), nc::constants::nan));
     Sigma_s_KF_predict.push_back(nc::full<double>(nc::Shape(K, K), nc::constants::nan));
 
-    // Initialise updates for alpha (with n = 0 and n = 1)
+// Initialise updates for alpha (with n = 0 and n = 1)
     std::vector<nc::NdArray<double>> gain_KF;
     gain_KF.push_back(nc::full<double>(nc::Shape(P, K), nc::constants::nan));
     gain_KF.push_back(nc::full<double>(nc::Shape(P, K), nc::constants::nan));
 
     std::vector<nc::NdArray<double>> alpha_KF_update;
     alpha_KF_update.push_back(nc::full<double>(nc::Shape(P, 1), nc::constants::nan));
-    alpha_KF_update.push_back(nc::full<double>(nc::Shape(P, 1), alpha_KF_init));
+    
+    // Reshape the 1D python array into a column vector
+    nc::NdArray<double> alpha_init_col = alpha_KF_init;
+    alpha_init_col.reshape(P, 1);
+    alpha_KF_update.push_back(alpha_init_col);
 
     std::vector<nc::NdArray<double>> Sigma_alpha_KF_update;
     Sigma_alpha_KF_update.push_back(nc::full<double>(nc::Shape(P, P), nc::constants::nan));
+    // Use the 2D diagonal matrix Python sent us directly
+    Sigma_alpha_KF_update.push_back(Sigma_alpha_init);
+
     // Initialising the covariance matrix as a scaled identity matrix
     Sigma_alpha_KF_update.push_back(nc::eye<double>(P) * Sigma_alpha_init); 
 
@@ -521,7 +528,7 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>, // alpha_KF_pre
         alpha_KF_predict_unordered_map[pairs[i]] = row;
     }
 
-    return {alpha_KF_predict_unordered_map, Sigma_alpha_KF_predict, s_KF_predict_unordered_map, Sigma_s_KF_predict, alpha_KF_update, Sigma_alpha_KF_update, gain_KF, Sigma_v};
+    return {alpha_KF_update, Sigma_alpha_KF_predict, s_KF_predict_unordered_map, Sigma_s_KF_predict, alpha_KF_predict_unordered_map, Sigma_alpha_KF_update, gain_KF, Sigma_v};
 }
 
 /*
@@ -769,19 +776,14 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>, // r_dp,
  * SOME METRICS (ensemble)
  */
 
-// struct Metric {
-//     nc::NdArray<double> corr;
-//     nc::NdArray<double> std;
-// };
-
-std::unordered_map<std::string, Metric> metrics_ensemble(const std::unordered_map<std::string, nc::NdArray<double>>& s_pred,
-                                                         const std::unordered_map<std::string, nc::NdArray<double>>& s_ref) {
-    std::unordered_map<std::string, Metric> metrics;
+std::unordered_map<std::string, std::unordered_map<std::string, nc::NdArray<double>>> metrics_ensemble(
+    const std::unordered_map<std::string, nc::NdArray<double>>& s_pred,
+    const std::unordered_map<std::string, nc::NdArray<double>>& s_ref) {
+    
+    std::unordered_map<std::string, std::unordered_map<std::string, nc::NdArray<double>>> metrics;
     for (const auto& [player, val] : s_pred) {
-        Metric temp_metric;
-        temp_metric.corr = nc::constants::nan;
-        temp_metric.std = nc::constants::nan;
-        metrics[player] = temp_metric;
+        metrics[player]["corr"] = nc::constants::nan;
+        metrics[player]["std"] = nc::constants::nan;
     }
 
     std::unordered_map<std::string, nc::NdArray<double>> filtered_s_pred;
@@ -799,8 +801,8 @@ std::unordered_map<std::string, Metric> metrics_ensemble(const std::unordered_ma
     }
 
     for (const auto& [player, val] : s_pred) {
-        metrics[player].corr = nc::corrcoef(nc::vstack({filtered_s_pred.at(player), filtered_s_ref.at(player)})).round(3);
-        metrics[player].std = nc::sqrt(nc::nanvar(s_pred.at(player) - s_ref.at(player))).round(3);
+        metrics[player]["corr"] = nc::corrcoef(nc::vstack({filtered_s_pred.at(player), filtered_s_ref.at(player)})).round(3);
+        metrics[player]["std"] = nc::sqrt(nc::nanvar(s_pred.at(player) - s_ref.at(player))).round(3);
     }
 
     return metrics;
@@ -952,29 +954,38 @@ Estimates estimate_ensemble(const std::unordered_map<std::string, nc::NdArray<do
     double sigma_v_bGLS = std::get<2>(bGLS_out);
 
 
+    // Convert scalars back to matrices for the C++ internal call
+    int K = s.size();
+    int P = K * (K - 1);
+    nc::NdArray<double> alpha_KF_init_arr = nc::full<double>(nc::Shape(P, 1), alpha_KF_init);
+    nc::NdArray<double> Sigma_alpha_init_arr = nc::eye<double>(P) * Sigma_alpha_init;
+
+    // Hoisted A_arr creation up here so both KF and bGLS can use it
+    std::unordered_map<std::string, nc::NdArray<double>> A_arr;
+    for (const auto& [key, val] : A) {
+        A_arr[key] = nc::NdArray<double>(A.at(key));
+    }
+
     auto KF_ensemble_out = KF_ensemble(s,
-                                       A,
+                                       A_arr, 
                                        Sigma_v_init,
                                        Sigma_w,
-                                       alpha_KF_init,
-                                       Sigma_alpha_init,
+                                       alpha_KF_init_arr,
+                                       Sigma_alpha_init_arr,
                                        est_Sigma_v,
                                        w_KF);
 
-    std::unordered_map<std::string, nc::NdArray<double>> alpha_KF_predict = std::get<0>(KF_ensemble_out);
+    // Unpack using the newly swapped tuple order
+    std::vector<nc::NdArray<double>> alpha_KF_update = std::get<0>(KF_ensemble_out);
     std::vector<nc::NdArray<double>> sigma2_alpha_KF_predict = std::get<1>(KF_ensemble_out);
     std::unordered_map<std::string, nc::NdArray<double>> s_KF_predict = std::get<2>(KF_ensemble_out);
     std::vector<nc::NdArray<double>> Sigma_s_KF_predict = std::get<3>(KF_ensemble_out);
-    std::vector<nc::NdArray<double>> alpha_KF_update = std::get<4>(KF_ensemble_out);
+    std::unordered_map<std::string, nc::NdArray<double>> alpha_KF_predict = std::get<4>(KF_ensemble_out); 
     std::vector<nc::NdArray<double>> Sigma_alpha_KF_update = std::get<5>(KF_ensemble_out);
     std::vector<nc::NdArray<double>> gain_KF = std::get<6>(KF_ensemble_out);
     std::vector<nc::NdArray<double>> Sigma_v = std::get<7>(KF_ensemble_out);
     
     // Reconstruct s
-    std::unordered_map<std::string, nc::NdArray<double>> A_arr;
-    for (const auto& [key, val] : A) {
-        A_arr[key] = nc::NdArray<double>(A.at(key));
-    }
     std::unordered_map<std::string, nc::NdArray<double>> s_bGLS = s_from_bGLS_ensemble(alpha_bGLS, A_arr);
 
     // Reconstruct r
