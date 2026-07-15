@@ -27,6 +27,11 @@ target_link_libraries(ensemble_backend PRIVATE
     NumCpp::NumCpp
 )
 
+# Add debug symbols, ASan, and keep frame pointers for readable stack traces
+target_compile_options(ensemble_backend PRIVATE -g -fsanitize=address -fno-omit-frame-pointer)
+# Tell the linker to use ASan
+target_link_options(ensemble_backend PRIVATE -fsanitize=address)
+
 set_target_properties(ensemble_backend PROPERTIES 
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src"
 )
