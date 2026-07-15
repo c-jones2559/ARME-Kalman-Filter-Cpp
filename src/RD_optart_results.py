@@ -126,7 +126,7 @@ def run_single_experiment(K, N, sigma_v_true, alpha_type, ideal, optimize_flags,
             x0=initial_params,
             bounds=bounds,
             method='L-BFGS-B',
-            options={"disp": False, "maxiter": 300}
+            options={"maxiter": 300}
         )
 
         # re-run KF with opt
