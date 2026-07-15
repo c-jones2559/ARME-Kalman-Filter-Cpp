@@ -255,4 +255,50 @@ m.def("metrics_ensemble", [](std::unordered_map<std::string, py::array_t<double>
         return py_metrics;
         
     }, "Calculates correlation and standard deviation metrics");
+
+    m.def("bGLS_ensemble", [](py::array_t<double> py_o_rm) {
+        nc::NdArray<double> cpp_o_rm = py_to_nc(py_o_rm);
+        
+        auto result = bGLS_ensemble(cpp_o_rm);
+        
+        return py::make_tuple(std::get<0>(result), std::get<1>(result), std::get<2>(result));
+        
+    }, "Runs bGLS on the given onset matrix", py::arg("o_rm"));
+
+    m.def("s_from_bGLS_ensemble", [](std::unordered_map<std::string, double> alpha_est,
+                                     std::unordered_map<std::string, py::array_t<double>> py_A) {
+        std::unordered_map<std::string, nc::NdArray<double>> cpp_A;
+        for (auto& [k, v] : py_A) {
+            cpp_A[k] = py_to_nc(v);
+        }
+
+        auto cpp_s = s_from_bGLS_ensemble(alpha_est, cpp_A);
+
+        py::dict py_s;
+        for (const auto& [k, v] : cpp_s) {
+            py_s[py::str(k)] = nc_to_py(v);
+        }
+        return py_s;
+        
+    }, "Obtain tracking of s from alpha estimate from bGLS", py::arg("alpha_est"), py::arg("A"));
+
+    m.def("r_from_s_ensemble", [](std::unordered_map<std::string, py::array_t<double>> py_s_est,
+                                  std::unordered_map<std::string, py::array_t<double>> py_r,
+                                  int w) {
+        
+        std::unordered_map<std::string, nc::NdArray<double>> cpp_s_est;
+        for (auto& [k, v] : py_s_est) cpp_s_est[k] = py_to_nc(v);
+
+        std::unordered_map<std::string, nc::NdArray<double>> cpp_r;
+        for (auto& [k, v] : py_r) cpp_r[k] = py_to_nc(v);
+
+        auto cpp_r_est = r_from_s_ensemble(cpp_s_est, cpp_r, w);
+
+        py::dict py_r_est;
+        for (const auto& [k, v] : cpp_r_est) {
+            py_r_est[py::str(k)] = nc_to_py(v);
+        }
+        return py_r_est;
+        
+    }, "Reconstruct r from estimated s", py::arg("s_est"), py::arg("r"), py::arg("w") = 5);
 }
