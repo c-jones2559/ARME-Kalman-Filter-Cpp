@@ -185,7 +185,7 @@ std::tuple<std::unordered_map<std::string, double>, double, double> bGLS_ensembl
     }
 
 
-    int number_of_players = ioi_x;
+    int number_of_players = ioi_y;
     nc::NdArray<double> alphas = nc::zeros<double>(number_of_players, number_of_players); // Initialise alpha matrix
 
     o_rm = o_rm(nc::Slice(1, o_rm.numRows()), o_rm.cSlice());
@@ -262,12 +262,14 @@ std::tuple<std::unordered_map<std::string, double>, double, double> bGLS_ensembl
             nc::NdArray<double> step1 = nc::dot(a3T, ic);
             nc::NdArray<double> step2 = nc::dot(step1, a3);
             nc::NdArray<double> step3 = nc::dot(step1, b3);
-            nc::NdArray<double> z = nc::linalg::pinv(nc::dot(step2, step3));
-            nc::NdArray<double> d = (a3 * z.item() - b3).transpose();
-            
+            // Correct GLS math: z = (A^T C^{-1} A)^{-1} (A^T C^{-1} b)
+            nc::NdArray<double> z = nc::dot(nc::linalg::pinv(step2), step3);
+            // Correct residual calculation using matrix multiplication: d = (A z - b)^T
+            nc::NdArray<double> d = (nc::dot(a3, z) - b3).transpose();
+
             nc::NdArray<double> slice1 = d(0, nc::Slice(0, d.numCols()-1));
             nc::NdArray<double> slice2 = d(0, nc::Slice(1, d.numCols()));
-            nc::NdArray<double> k = nc::cov(nc::column_stack({slice1, slice2})); // estimate residual acvf
+            nc::NdArray<double> k = nc::cov(nc::vstack({slice1, slice2})); // estimate residual acvf
             k11 = (k(0, 0)+k(1, 1))/2;
             k12 = k(0, 1);
             // apply bounds
@@ -308,10 +310,11 @@ std::tuple<std::unordered_map<std::string, double>, double, double> bGLS_ensembl
     for (int player1 = 0; player1 < number_of_players; player1++) {
         for (int player2 = 0; player2 < number_of_players; player2++) {
             if (player1 != player2) {
-                alphas_dict[std::to_string(player1 + 1) + std::to_string(player2 + 1)];
-                alphas_dict.insert({
-                    std::to_string(player1 + 1) + std::to_string(player2 + 1),
-                    alphas(player1, player2)});
+                alphas_dict[std::to_string(player1 + 1) + std::to_string(player2 + 1)] = alphas(player1, player2);
+                // alphas_dict[std::to_string(player1 + 1) + std::to_string(player2 + 1)];
+                // alphas_dict.insert({
+                //     std::to_string(player1 + 1) + std::to_string(player2 + 1),
+                //     alphas(player1, player2)});
             }
         }
     }
@@ -375,7 +378,7 @@ std::tuple<std::vector<nc::NdArray<double>>,
     Sigma_s_KF_predict.push_back(nc::full<double>(nc::Shape(K, K), nc::constants::nan));
     Sigma_s_KF_predict.push_back(nc::full<double>(nc::Shape(K, K), nc::constants::nan));
 
-// Initialise updates for alpha (with n = 0 and n = 1)
+    // Initialise updates for alpha (with n = 0 and n = 1)
     std::vector<nc::NdArray<double>> gain_KF;
     gain_KF.push_back(nc::full<double>(nc::Shape(P, K), nc::constants::nan));
     gain_KF.push_back(nc::full<double>(nc::Shape(P, K), nc::constants::nan));
@@ -392,9 +395,6 @@ std::tuple<std::vector<nc::NdArray<double>>,
     Sigma_alpha_KF_update.push_back(nc::full<double>(nc::Shape(P, P), nc::constants::nan));
     // Use the 2D diagonal matrix Python sent us directly
     Sigma_alpha_KF_update.push_back(Sigma_alpha_init);
-
-    // Initialising the covariance matrix as a scaled identity matrix
-    Sigma_alpha_KF_update.push_back(nc::eye<double>(P) * Sigma_alpha_init); 
 
     // Initialise dynamic estimation of sigma_v [TESTING] (with n = 0 and n = 1)
     std::vector<nc::NdArray<double>> Sigma_v;

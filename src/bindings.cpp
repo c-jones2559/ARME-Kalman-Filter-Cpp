@@ -10,25 +10,61 @@ namespace py = pybind11;
 // --- Add this to force contiguous memory and type casting ---
 using PyInArr = py::array_t<double, py::array::c_style | py::array::forcecast>;
 
-// 1. Convert NumCpp array to Python NumPy array
+// 1. Convert NumCpp array to Python NumPy array (Hardened deep copy)
 py::array_t<double> nc_to_py(const nc::NdArray<double>& arr) {
-    return py::array_t<double>(
-        {arr.numRows(), arr.numCols()}, 
-        {arr.numCols() * sizeof(double), sizeof(double)}, 
-        arr.data() 
-    );
+    // Safely bail out if the C++ array is completely empty
+    if (arr.size() == 0 || arr.isempty()) {
+        return py::array_t<double>();
+    }
+    
+    py::array_t<double> py_arr({arr.numRows(), arr.numCols()});
+    py::buffer_info buf = py_arr.request();
+    
+    if (buf.ptr != nullptr && arr.data() != nullptr) {
+        std::memcpy(buf.ptr, arr.data(), arr.size() * sizeof(double));
+    }
+    return py_arr;
 }
 
-// 2. Convert Python NumPy array to NumCpp array (Update the argument type here)
+// 2. Convert Python NumPy array to NumCpp array (Hardened + Auto-Squeeze)
 nc::NdArray<double> py_to_nc(PyInArr arr) {
     py::buffer_info buf = arr.request();
     
-    // Check dimensions to handle 1D and 2D arrays gracefully
-    nc::uint32 rows = buf.ndim == 2 ? buf.shape[0] : 1;
-    nc::uint32 cols = buf.ndim == 2 ? buf.shape[1] : buf.shape[0];
+    // Handle completely empty arrays or scalars gracefully
+    if (buf.size == 0 || buf.ndim == 0) {
+        return nc::NdArray<double>();
+    }
+
+    nc::uint32 rows = 1;
+    nc::uint32 cols = 1;
     
+    if (buf.ndim == 1) {
+        cols = buf.shape[0];
+    } else if (buf.ndim == 2) {
+        rows = buf.shape[0];
+        cols = buf.shape[1];
+    } else if (buf.ndim == 3) {
+        // Python sent a 3D tensor.
+        if (buf.shape[0] == 1) {
+            rows = buf.shape[1];
+            cols = buf.shape[2];
+        } else if (buf.shape[1] == 1) {
+            rows = buf.shape[0];
+            cols = buf.shape[2];
+        } else if (buf.shape[2] == 1) {
+            rows = buf.shape[0];
+            cols = buf.shape[1];
+        } else {
+            throw std::runtime_error("3D array provided cannot be squeezed into a 2D matrix (no dimension is 1).");
+        }
+    } else {
+        throw std::runtime_error("Only up to 3D arrays (with a squeezable dimension) are supported.");
+    }
+
     nc::NdArray<double> res(rows, cols);
-    std::memcpy(res.data(), buf.ptr, buf.size * sizeof(double));
+    if (buf.ptr != nullptr) {
+        std::memcpy(res.data(), buf.ptr, buf.size * sizeof(double));
+    }
     return res;
 }
 
