@@ -7,17 +7,20 @@ namespace py = pybind11;
 
 // --- NumCpp to NumPy Bridge ---
 
+// --- Add this to force contiguous memory and type casting ---
+using PyInArr = py::array_t<double, py::array::c_style | py::array::forcecast>;
+
 // 1. Convert NumCpp array to Python NumPy array
 py::array_t<double> nc_to_py(const nc::NdArray<double>& arr) {
     return py::array_t<double>(
-        {arr.numRows(), arr.numCols()}, // shape
-        {arr.numCols() * sizeof(double), sizeof(double)}, // strides (C-style contiguous)
-        arr.data() // raw pointer to the data
+        {arr.numRows(), arr.numCols()}, 
+        {arr.numCols() * sizeof(double), sizeof(double)}, 
+        arr.data() 
     );
 }
 
-// 2. Convert Python NumPy array to NumCpp array
-nc::NdArray<double> py_to_nc(py::array_t<double> arr) {
+// 2. Convert Python NumPy array to NumCpp array (Update the argument type here)
+nc::NdArray<double> py_to_nc(PyInArr arr) {
     py::buffer_info buf = arr.request();
     
     // Check dimensions to handle 1D and 2D arrays gracefully
@@ -41,12 +44,12 @@ PYBIND11_MODULE(ensemble_backend, m) {
         .def_readonly("sigma_v", &EstBGLS::sigma_v)
         .def_readonly("sigma_m", &EstBGLS::sigma_m)
         .def_property_readonly("s", [](const EstBGLS& e) {
-            std::unordered_map<std::string, py::array_t<double>> py_s;
+            std::unordered_map<std::string, PyInArr> py_s;
             for (const auto& [key, val] : e.s) py_s[key] = nc_to_py(val);
             return py_s;
         })
         .def_property_readonly("r", [](const EstBGLS& e) {
-            std::unordered_map<std::string, py::array_t<double>> py_r;
+            std::unordered_map<std::string, PyInArr> py_r;
             for (const auto& [key, val] : e.r) py_r[key] = nc_to_py(val);
             return py_r;
         });
@@ -54,47 +57,47 @@ PYBIND11_MODULE(ensemble_backend, m) {
     // Bind EstKF
     py::class_<EstKF>(m, "EstKF")
         .def_property_readonly("alpha_pred", [](const EstKF& e) {
-            std::unordered_map<std::string, py::array_t<double>> py_map;
+            std::unordered_map<std::string, PyInArr> py_map;
             for (const auto& [key, val] : e.alpha_pred) py_map[key] = nc_to_py(val);
             return py_map;
         })
         .def_property_readonly("sigma2_alpha_pred", [](const EstKF& e) {
-            std::vector<py::array_t<double>> py_vec;
+            std::vector<PyInArr> py_vec;
             for (const auto& val : e.sigma2_alpha_pred) py_vec.push_back(nc_to_py(val));
             return py_vec;
         })
         .def_property_readonly("s_pred", [](const EstKF& e) {
-            std::unordered_map<std::string, py::array_t<double>> py_map;
+            std::unordered_map<std::string, PyInArr> py_map;
             for (const auto& [key, val] : e.s_pred) py_map[key] = nc_to_py(val);
             return py_map;
         })
         .def_property_readonly("sigma2_s_pred", [](const EstKF& e) {
-            std::vector<py::array_t<double>> py_vec;
+            std::vector<PyInArr> py_vec;
             for (const auto& val : e.sigma2_s_pred) py_vec.push_back(nc_to_py(val));
             return py_vec;
         })
         .def_property_readonly("alpha_update", [](const EstKF& e) {
-            std::vector<py::array_t<double>> py_vec;
+            std::vector<PyInArr> py_vec;
             for (const auto& val : e.alpha_update) py_vec.push_back(nc_to_py(val));
             return py_vec;
         })
         .def_property_readonly("sigma2_alpha_update", [](const EstKF& e) {
-            std::vector<py::array_t<double>> py_vec;
+            std::vector<PyInArr> py_vec;
             for (const auto& val : e.sigma2_alpha_update) py_vec.push_back(nc_to_py(val));
             return py_vec;
         })
         .def_property_readonly("gain", [](const EstKF& e) {
-            std::vector<py::array_t<double>> py_vec;
+            std::vector<PyInArr> py_vec;
             for (const auto& val : e.gain) py_vec.push_back(nc_to_py(val));
             return py_vec;
         })
         .def_property_readonly("sigma_v", [](const EstKF& e) {
-            std::vector<py::array_t<double>> py_vec;
+            std::vector<PyInArr> py_vec;
             for (const auto& val : e.sigma_v) py_vec.push_back(nc_to_py(val));
             return py_vec;
         })
         .def_property_readonly("r", [](const EstKF& e) {
-            std::unordered_map<std::string, py::array_t<double>> py_map;
+            std::unordered_map<std::string, PyInArr> py_map;
             for (const auto& [key, val] : e.r) py_map[key] = nc_to_py(val);
             return py_map;
         });
@@ -106,12 +109,12 @@ PYBIND11_MODULE(ensemble_backend, m) {
 
     // Bind Core Pipeline Execution
     m.def("estimate_ensemble", [](
-          std::unordered_map<std::string, py::array_t<double>> py_s,
-          std::unordered_map<std::string, py::array_t<double>> py_r,
+          std::unordered_map<std::string, PyInArr> py_s,
+          std::unordered_map<std::string, PyInArr> py_r,
           std::unordered_map<std::string, std::vector<double>> A,
           std::unordered_map<std::string, std::vector<double>> t,
           double w,
-          py::array_t<double> py_Sigma_v_init,
+          PyInArr py_Sigma_v_init,
           double Sigma_w,
           double alpha_KF_init,
           double Sigma_alpha_init,
@@ -133,7 +136,7 @@ PYBIND11_MODULE(ensemble_backend, m) {
     }, "Runs the full bGLS and Kalman Filter ensemble estimation pipeline.");
 // --- Utility Functions ---
     
-    m.def("cov2cor", [](py::array_t<double> py_V) {
+    m.def("cov2cor", [](PyInArr py_V) {
         // Convert incoming NumPy array to NumCpp
         nc::NdArray<double> cpp_V = py_to_nc(py_V);
         
@@ -147,7 +150,7 @@ PYBIND11_MODULE(ensemble_backend, m) {
 
 
     // Might as well chuck cor2cov in there too so you don't hit the exact same wall in two minutes
-    m.def("cor2cov", [](py::array_t<double> py_stdevs, py::array_t<double> py_V_cor) {
+    m.def("cor2cov", [](PyInArr py_stdevs, PyInArr py_V_cor) {
         nc::NdArray<double> cpp_stdevs = py_to_nc(py_stdevs);
         nc::NdArray<double> cpp_V_cor = py_to_nc(py_V_cor);
         
@@ -185,12 +188,12 @@ PYBIND11_MODULE(ensemble_backend, m) {
     }, "Generates synthetic ensemble data");
 
 
-m.def("KF_ensemble", [](std::unordered_map<std::string, py::array_t<double>> py_s,
-                            std::unordered_map<std::string, py::array_t<double>> py_A,
-                            py::array_t<double> py_Sigma_v_init,
+m.def("KF_ensemble", [](std::unordered_map<std::string, PyInArr> py_s,
+                            std::unordered_map<std::string, PyInArr> py_A,
+                            PyInArr py_Sigma_v_init,
                             double Sigma_w,
-                            py::array_t<double> py_alpha_KF_init,
-                            py::array_t<double> py_Sigma_alpha_init,
+                            PyInArr py_alpha_KF_init,
+                            PyInArr py_Sigma_alpha_init,
                             bool est_Sigma_v,
                             double w) {
         
@@ -233,8 +236,8 @@ m.def("KF_ensemble", [](std::unordered_map<std::string, py::array_t<double>> py_
        py::arg("s"), py::arg("A"), py::arg("Sigma_v_init"), py::arg("Sigma_w") = 0.1,
        py::arg("alpha_KF_init"), py::arg("Sigma_alpha_init"), py::arg("est_Sigma_v") = false, py::arg("w") = 5.0);
 
-m.def("metrics_ensemble", [](std::unordered_map<std::string, py::array_t<double>> py_s_pred,
-                                 std::unordered_map<std::string, py::array_t<double>> py_s_ref) {
+m.def("metrics_ensemble", [](std::unordered_map<std::string, PyInArr> py_s_pred,
+                                 std::unordered_map<std::string, PyInArr> py_s_ref) {
         
         std::unordered_map<std::string, nc::NdArray<double>> cpp_s_pred;
         std::unordered_map<std::string, nc::NdArray<double>> cpp_s_ref;
@@ -256,7 +259,7 @@ m.def("metrics_ensemble", [](std::unordered_map<std::string, py::array_t<double>
         
     }, "Calculates correlation and standard deviation metrics");
 
-    m.def("bGLS_ensemble", [](py::array_t<double> py_o_rm) {
+    m.def("bGLS_ensemble", [](PyInArr py_o_rm) {
         nc::NdArray<double> cpp_o_rm = py_to_nc(py_o_rm);
         
         auto result = bGLS_ensemble(cpp_o_rm);
@@ -266,7 +269,7 @@ m.def("metrics_ensemble", [](std::unordered_map<std::string, py::array_t<double>
     }, "Runs bGLS on the given onset matrix", py::arg("o_rm"));
 
     m.def("s_from_bGLS_ensemble", [](std::unordered_map<std::string, double> alpha_est,
-                                     std::unordered_map<std::string, py::array_t<double>> py_A) {
+                                     std::unordered_map<std::string, PyInArr> py_A) {
         std::unordered_map<std::string, nc::NdArray<double>> cpp_A;
         for (auto& [k, v] : py_A) {
             cpp_A[k] = py_to_nc(v);
@@ -282,8 +285,8 @@ m.def("metrics_ensemble", [](std::unordered_map<std::string, py::array_t<double>
         
     }, "Obtain tracking of s from alpha estimate from bGLS", py::arg("alpha_est"), py::arg("A"));
 
-    m.def("r_from_s_ensemble", [](std::unordered_map<std::string, py::array_t<double>> py_s_est,
-                                  std::unordered_map<std::string, py::array_t<double>> py_r,
+    m.def("r_from_s_ensemble", [](std::unordered_map<std::string, PyInArr> py_s_est,
+                                  std::unordered_map<std::string, PyInArr> py_r,
                                   int w) {
         
         std::unordered_map<std::string, nc::NdArray<double>> cpp_s_est;
