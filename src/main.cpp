@@ -75,12 +75,29 @@ int main() {
     }
     test_estimate_ensemble_pipeline();
 
-    // 4. Test bGLS_ensemble (Minimal)
+// 4. Test bGLS_ensemble (Robust)
     {
-        nc::NdArray<double> o_rm = {{1,2, 3, 4}, {11,12, 13, 14}, {21,22, 23, 24}, {31,32, 33, 34}};
+        // 4 players, 5 time steps (onsets)
+        // Rows = Time (5), Columns = Players (4)
+        nc::NdArray<double> o_rm = {
+            {0.0, 0.0, 0.0, 0.0},
+            {500.0, 505.0, 495.0, 500.0},
+            {1000.0, 1010.0, 990.0, 1000.0},
+            {1500.0, 1515.0, 1485.0, 1500.0},
+            {2000.0, 2020.0, 1980.0, 2000.0}
+        };
+        
         auto [alphas, sm, st] = bGLS_ensemble(o_rm);
-        assert(alphas.size() > 0);
-        std::cout << "  [OK] bGLS Ensemble" << std::endl;
+        
+        // Verification: 
+        // With 4 players, we expect (4 * 3) = 12 alpha keys (e.g., "12", "13"...)
+        assert(alphas.size() == 12);
+        
+        // Check that noise estimates aren't negative or insane
+        assert(sm >= 0.0);
+        assert(st >= 0.0);
+        
+        std::cout << "  [OK] bGLS Ensemble (Robust check passed)" << std::endl;
     }
 
     std::cout << "\n--- All internal tests passed! You're a legend. ---" << std::endl;
