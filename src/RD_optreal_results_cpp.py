@@ -16,7 +16,6 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-from google.colab import files
 import io
 from scipy.linalg import block_diag
 from scipy.optimize import minimize
@@ -28,8 +27,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 import ensemble_backend
 
 # upload file
-uploaded = files.upload()
-filename = list(uploaded.keys())[0]
+filename = '../virtuoso.csv'
 
 # read file
 def process_ensemble_data(leader, rep, w, filepath=filename):
@@ -175,7 +173,7 @@ for leader in leaders:
                     'sigma_alpha': sigma_alpha,
                     'alpha_init': alpha_init
                 }
-                loss_dict = combined_loss(r_data, s_win, A, w, KF_ensemble, params_dict, weight=weight)
+                loss_dict = combined_loss(r_data, s_win, A, w, ensemble_backend.KF_ensemble, params_dict, weight=weight)
                 return np.mean(list(loss_dict.values()))
 
             def obj_ll(params):
@@ -188,7 +186,7 @@ for leader in leaders:
                     'sigma_alpha': sigma_alpha,
                     'alpha_init': alpha_init
                 }
-                loss_dict = likelihood_loss(r_data, s_win, A, w, KF_ensemble, params_dict)
+                loss_dict = likelihood_loss(r_data, s_win, A, w, ensemble_backend.KF_ensemble, params_dict)
                 return np.mean(list(loss_dict.values()))
 
             # optimisations & bounds
@@ -216,7 +214,6 @@ for leader in leaders:
 # output
 df_results = pd.DataFrame(results)
 df_results.to_csv('opt_real_results.csv', index=False)
-files.download('opt_real_results.csv')
 print(df_results)
 
 
@@ -445,7 +442,7 @@ def pareto_curve(weights, r_data, s_data, A, w, init_guess, bounds):
         def obj(params):
             pdict = {'sigma_w':params[0],'sigma_v':params[1],
                      'sigma_alpha':params[2],'alpha_init':params[3]}
-            return np.mean(list(combined_loss(r_data, s_data, A, w, KF_ensemble, pdict, weight=wgt).values()))
+            return np.mean(list(combined_loss(r_data, s_data, A, w, ensemble_backend.KF_ensemble, pdict, weight=wgt).values()))
         res = minimize(obj, init_guess, bounds=bounds)
         losses.append(res.fun)
     plt.figure(figsize=(6,4))
@@ -590,7 +587,6 @@ for loss_name, loss_func in zip(loss_types, [combined_loss, likelihood_loss]):
 # save as metrics comparison
 df_metrics_comparison = pd.DataFrame(metrics_comparison_results)
 df_metrics_comparison.to_csv('metrics_comparison.csv', index=False)
-files.download('metrics_comparison.csv')
 
 # display
 print("\nCorrelation & Std Improvement for s_pred Timeseries (after optimisation):")
@@ -635,7 +631,6 @@ print(df_metrics_comparison)
 # save as loss comparison
 # df_loss_comparison = pd.DataFrame(loss_comparison_results)
 # df_loss_comparison.to_csv('loss_comparison_results.csv', index=False)
-# files.download('loss_comparison_results.csv')
 
 # # display
 # print("Improvement in Loss (after optimisation):")
@@ -749,7 +744,7 @@ for i, s_alpha in enumerate(sigma_alpha_values):
             'alpha_init': alpha_init
         }
         try:
-            loss_dict = combined_loss(r_data, s_data, A, w, KF_ensemble, params_test)
+            loss_dict = combined_loss(r_data, s_data, A, w, ensemble_backend.KF_ensemble, params_test)
             loss_grid[i, j] = np.nanmean(list(loss_dict.values()))
         except np.linalg.LinAlgError:
             pass  # leave nan for unstable combos

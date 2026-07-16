@@ -17,7 +17,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-from google.colab import files
 import io
 from scipy.linalg import block_diag
 from scipy.optimize import minimize
@@ -42,8 +41,7 @@ mpl.rcParams.update({
 })
 
 # upload file
-uploaded = files.upload()
-filename = list(uploaded.keys())[0]
+filename = '../virtuoso.csv'
 
 # read file
 def process_ensemble_data(leader, rep, w, filepath=filename):
@@ -305,7 +303,6 @@ for leader in leaders:
         fname = f'{leader}_Rep{rep}'
         plt.tight_layout()
         plt.savefig(fname + '.pdf')
-        files.download(fname + '.pdf')
         plt.close()
 
 
