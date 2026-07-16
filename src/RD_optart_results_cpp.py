@@ -56,11 +56,14 @@ def run_single_experiment(K, N, sigma_v_true, alpha_type, ideal, optimize_flags,
         alpha = {f"{i}{j}": [np.nan] + [0.3 + 0.2 * np.sin(2 * np.pi * n / N) for n in range(N)]
                  for i in players for j in players if i != j}
 
-    # generate data
+# generate data
     Tmkp = {k: [np.nan] + N * [500] for k in players}
     sigma_v_dict = {k: sigma_v_true for k in players}
     s_true, s_win, r, A, t, T = ensemble_backend.generate_ensemble_data(N, Tmkp, alpha, sigma_v_dict, w)
     s_input = s_true if ideal else s_win
+
+    # INITIALISE OPTIMIZER HERE (loads data into C++ memory once)
+    kf_optimizer = ensemble_backend.KFOptimizer(s_input, A, s_true, K, w)
 
     s_win_values = np.concatenate([s_win[p][~np.isnan(s_win[p])] for p in players])
     s_v_init = np.nanstd(s_win_values)
@@ -90,31 +93,19 @@ def run_single_experiment(K, N, sigma_v_true, alpha_type, ideal, optimize_flags,
         try:
             sigma_w = params[idx] if optimize_flags["sigma_w"] else 1e-1
             idx += int(optimize_flags["sigma_w"])
+            
             sigma_v = params[idx] if optimize_flags["sigma_v"] else 40.0
-            Sigma_v = np.diag([sigma_v] * K)
             idx += int(optimize_flags["sigma_v"])
+            
             sigma_alpha = params[idx] if optimize_flags["sigma_alpha"] else 0.3
-            Sigma_alpha = np.diag([sigma_alpha] * n_alpha)
             idx += int(optimize_flags["sigma_alpha"])
+            
             alpha_KF_val = params[idx] if optimize_flags["alpha_KF_init"] else 1 / K
-            alpha_KF_init = np.array([alpha_KF_val] * n_alpha)
 
-            _, _, s_hat, *_ = ensemble_backend.KF_ensemble(
-                s=s_input,
-                A=A,
-                Sigma_v_init=Sigma_v,
-                Sigma_w=sigma_w,
-                alpha_KF_init=alpha_KF_init,
-                Sigma_alpha_init=Sigma_alpha,
-                w=w
-            )
-            s_hat_matrix = np.array([s_hat[p] for p in players])
-            s_true_matrix = np.array([s_true[p] for p in players])
-            valid_mask = ~np.isnan(s_hat_matrix) & ~np.isnan(s_true_matrix)
-            if not np.any(valid_mask):
-                return 1e6
-            mse = np.mean((s_hat_matrix[valid_mask] - s_true_matrix[valid_mask]) ** 2)
+            # Call the blazing fast C++ method directly.
+            mse = kf_optimizer.loss(sigma_w, sigma_v, sigma_alpha, alpha_KF_val, ideal)
             return mse
+            
         except Exception as e:
             print(f"Loss function error: {e}")
             return 1e6
