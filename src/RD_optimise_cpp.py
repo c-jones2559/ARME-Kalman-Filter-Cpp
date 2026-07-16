@@ -116,47 +116,30 @@ def get_initial_params(opt_flags, K, n_alpha):
 
     return np.array(params), bounds # sigma_w, sigma_v, sigma_alpha_init, alpha_KF_init
 
-# loss fct
-def loss_function(params, opt_flags, s_true, K, n_alpha, players, pairs, s_win, r, A, t, T, w):
+# Initialise the C++ optimizer class ONCE before the optimize loop.
+# It pre-loads s_win, A, and s_true so they never cross the bridge again.
+s_input = s_win if realistic else s_true
+kf_optimizer = ensemble_backend.KFOptimizer(s_input, A, s_true, K, w)
+
+# Updated loss fct
+def loss_function(params, opt_flags):
     idx = 0
 
     sigma_w = params[idx] if opt_flags["sigma_w"] else s_w_else
     idx += int(opt_flags["sigma_w"])
 
     sigma_v = params[idx] if opt_flags["sigma_v"] else s_v_else
-    Sigma_v = np.diag([sigma_v] * K)
     idx += int(opt_flags["sigma_v"])
 
     sigma_alpha = params[idx] if opt_flags["sigma_alpha"] else s_alpha_else
-    Sigma_alpha = np.diag([sigma_alpha] * n_alpha)
     idx += int(opt_flags["sigma_alpha"])
 
     alpha_KF_val = params[idx] if opt_flags["alpha_KF_init"] else alpha_else
-    alpha_KF_init = np.array([alpha_KF_val] * n_alpha)
 
     try:
-        if ideal:
-            s = s_true
-        elif realistic:
-            s = s_win
-        _, _, s_hat, *_ = ensemble_backend.KF_ensemble( # s_hat is s_KF_predict
-            s=s, 
-            A=A,
-            Sigma_v_init=Sigma_v,
-            Sigma_w=sigma_w,
-            alpha_KF_init=alpha_KF_init,
-            Sigma_alpha_init=Sigma_alpha,
-            w=w
-        )
-
-        s_hat_matrix = np.array([s_hat[p] for p in players])
-        s_true_matrix = np.array([s_true[p] for p in players])
-        valid_mask = ~np.isnan(s_hat_matrix) & ~np.isnan(s_true_matrix)
-
-        if not np.any(valid_mask):
-            return 1e6
-
-        mse = np.mean((s_hat_matrix[valid_mask] - s_true_matrix[valid_mask]) ** 2)
+        # Call the blazing fast C++ method directly. 
+        # We are only passing 5 standard data types (floats/bools) across the bridge now!
+        mse = kf_optimizer.loss(sigma_w, sigma_v, sigma_alpha, alpha_KF_val, ideal)
         return mse
         
     except Exception as e:
@@ -165,7 +148,9 @@ def loss_function(params, opt_flags, s_true, K, n_alpha, players, pairs, s_win, 
 
 # optimisation step
 initial_params, bounds = get_initial_params(optimize_flags, K, n_alpha)
-args = (optimize_flags, s_true, K, n_alpha, players, pairs, s_win, r, A, t, T, w)
+
+# Only need the flags now!
+args = (optimize_flags,)
 
 result = minimize(
     fun=loss_function,

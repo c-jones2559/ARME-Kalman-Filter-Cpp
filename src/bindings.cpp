@@ -88,12 +88,69 @@ nc::NdArray<double> py_to_nc(PyInArr arr) {
     return res;
 }
 
+class KFOptimizer {
+private:
+    std::unordered_map<std::string, nc::NdArray<double>> s_data;
+    std::unordered_map<std::string, nc::NdArray<double>> A_data;
+    std::unordered_map<std::string, nc::NdArray<double>> s_true_data;
+    int K;
+    double w;
+
+public:
+    // Constructor: Takes the heavy data ONCE and translates it to NumCpp
+    KFOptimizer(std::unordered_map<std::string, PyInArr> py_s,
+                std::unordered_map<std::string, PyInArr> py_A,
+                std::unordered_map<std::string, PyInArr> py_s_true,
+                int K_in, double w_in) {
+        for (auto& [k, v] : py_s) s_data[k] = py_to_nc(v);
+        for (auto& [k, v] : py_A) A_data[k] = py_to_nc(v);
+        for (auto& [k, v] : py_s_true) s_true_data[k] = py_to_nc(v);
+        K = K_in;
+        w = w_in;
+    }
+
+    // The function Scipy will call hundreds of times. Only passes a few floats!
+    double loss(double sigma_w, double sigma_v, double sigma_alpha, double alpha_KF_val, bool ideal) {
+        int n_alpha = K * (K - 1);
+        
+        nc::NdArray<double> Sigma_v = nc::eye<double>(K) * sigma_v;
+        nc::NdArray<double> Sigma_alpha = nc::eye<double>(n_alpha) * sigma_alpha;
+        nc::NdArray<double> alpha_KF_init = nc::full<double>(nc::Shape(n_alpha, 1), alpha_KF_val);
+
+        // Run KF locally in C++ without crossing the Python bridge!
+        auto s_input = ideal ? s_true_data : s_data;
+        auto result = KF_ensemble(s_input, A_data, Sigma_v, sigma_w, alpha_KF_init, Sigma_alpha, false, w);
+
+        auto s_hat = std::get<2>(result); // Extract s_KF_predict
+
+        // Calculate MSE purely in C++
+        double mse = 0.0;
+        int valid_count = 0;
+        
+        for (const auto& [player, hat_arr] : s_hat) {
+            auto true_arr = s_true_data[player];
+            for(int i = 0; i < hat_arr.size(); ++i) {
+                if(!std::isnan(hat_arr[i]) && !std::isnan(true_arr[i])) {
+                    mse += std::pow(hat_arr[i] - true_arr[i], 2);
+                    valid_count++;
+                }
+            }
+        }
+        
+        return valid_count > 0 ? mse / valid_count : 1e6;
+    }
+};
 
 // --- Module Definition ---
 
 PYBIND11_MODULE(ensemble_backend, m) {
     m.doc() = "Lightning fast C++ backend for ensemble tracking algorithms";
-
+    py::class_<KFOptimizer>(m, "KFOptimizer")
+        .def(py::init<std::unordered_map<std::string, PyInArr>, 
+                      std::unordered_map<std::string, PyInArr>, 
+                      std::unordered_map<std::string, PyInArr>, 
+                      int, double>())
+        .def("loss", &KFOptimizer::loss);
     // Bind EstBGLS
     py::class_<EstBGLS>(m, "EstBGLS")
         .def_readonly("alpha", &EstBGLS::alpha)
