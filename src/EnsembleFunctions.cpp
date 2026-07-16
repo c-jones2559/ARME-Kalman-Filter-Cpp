@@ -66,17 +66,17 @@ std::array<std::unordered_map<std::string, nc::NdArray<double>>, 6> generate_ens
     for (int n = 2; n <= N; n++) {
         for (const auto& player : players) {
             T[player].push_back(T[player][n - 1] + Tmkp.at(player)[n]);
-            
+
             double aux = 0;
             for (const auto& player2 : players) {
                 if (player2 != player) {
                     aux += alpha.at(player + player2)[n] * A[player + player2][n - 1];
-
                 }
-            t[player].push_back(t[player][n - 1] + Tmkp.at(player)[n] - aux + nc::random::normal(0.0, sigma_v.at(player)));
             }
+
+            t[player].push_back(t[player][n - 1] + Tmkp.at(player)[n] - aux + nc::random::normal(0.0, sigma_v.at(player)));
         }
-        
+
         for (const auto& pair : pairs) {
             A[pair].push_back(t[std::string(1, pair[0])][n] - t[std::string(1, pair[1])][n]);
         }

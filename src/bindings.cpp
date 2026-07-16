@@ -17,6 +17,26 @@ py::array_t<double> nc_to_py(const nc::NdArray<double>& arr) {
         return py::array_t<double>();
     }
     
+    // Squeeze to 1D if it's a row vector to match NumPy conventions
+    if (arr.numRows() == 1) {
+        py::array_t<double> py_arr({arr.numCols()});
+        py::buffer_info buf = py_arr.request();
+        if (buf.ptr != nullptr && arr.data() != nullptr) {
+            std::memcpy(buf.ptr, arr.data(), arr.size() * sizeof(double));
+        }
+        return py_arr;
+    } 
+    // Squeeze to 1D if it's a column vector
+    else if (arr.numCols() == 1) {
+        py::array_t<double> py_arr({arr.numRows()});
+        py::buffer_info buf = py_arr.request();
+        if (buf.ptr != nullptr && arr.data() != nullptr) {
+            std::memcpy(buf.ptr, arr.data(), arr.size() * sizeof(double));
+        }
+        return py_arr;
+    }
+    
+    // Default 2D matrix case
     py::array_t<double> py_arr({arr.numRows(), arr.numCols()});
     py::buffer_info buf = py_arr.request();
     
