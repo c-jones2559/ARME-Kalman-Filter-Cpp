@@ -30,105 +30,54 @@ import ensemble_backend
 filename = '../virtuoso.csv'
 
 # read file
-def process_ensemble_data(leader, rep, w, filepath=filename):
-    virtuoso = pd.read_csv(filepath)
-
-    N = 46
-    K = 4
-
-    ioi_cols = ['ioi' + str(k) for k in range(N)]
-    players = [str(k) for k in range(1, K + 1)]
-    pairs = [str(k1) + str(k2) for k1 in range(1, K + 1) for k2 in range(1, K + 1) if k1 != k2]
-
-    r_dp = virtuoso[(virtuoso['condition'] == 'DP') & (virtuoso['leader'] == leader) & (virtuoso['repetition'] == rep)][ioi_cols].values
-    r_nr = virtuoso[(virtuoso['condition'] == 'NR') & (virtuoso['leader'] == leader) & (virtuoso['repetition'] == rep)][ioi_cols].values
-    r_sp = virtuoso[(virtuoso['condition'] == 'SP') & (virtuoso['leader'] == leader) & (virtuoso['repetition'] == rep)][ioi_cols].values
-
-    aux = np.empty((4, 2))
-    aux.fill(np.nan)
-    r_dp = dict(zip(players, np.hstack((aux, r_dp))))
-    r_nr = dict(zip(players, np.hstack((aux, r_nr))))
-    r_sp = dict(zip(players, np.hstack((aux, r_sp))))
-
-    t_dp = {player: np.hstack((np.nan, 0, r_dp[player][2:].cumsum())) for player in players}
-    t_nr = {player: np.hstack((np.nan, 0, r_nr[player][2:].cumsum())) for player in players}
-    t_sp = {player: np.hstack((np.nan, 0, r_sp[player][2:].cumsum())) for player in players}
-
-    A_dp = {pair: t_dp[pair[0]] - t_dp[pair[1]] for pair in pairs}
-    A_nr = {pair: t_nr[pair[0]] - t_nr[pair[1]] for pair in pairs}
-    A_sp = {pair: t_sp[pair[0]] - t_sp[pair[1]] for pair in pairs}
-
-    s_dp_win = {player: 2*[np.nan] for player in players}
-    s_nr_win = {player: 2*[np.nan] for player in players}
-    s_sp_win = {player: 2*[np.nan] for player in players}
-
-    for n in range(2, N + 2):
-        for player in players:
-            if n <= w:
-                s_dp_win[player].append(r_dp[player][n] - np.mean(r_dp[player][2:n+1]))
-                s_nr_win[player].append(r_nr[player][n] - np.mean(r_nr[player][2:n+1]))
-                s_sp_win[player].append(r_sp[player][n] - np.mean(r_sp[player][2:n+1]))
-            else:
-                s_dp_win[player].append(r_dp[player][n] - np.mean(r_dp[player][n-w+1:n+1]))
-                s_nr_win[player].append(r_nr[player][n] - np.mean(r_nr[player][n-w+1:n+1]))
-                s_sp_win[player].append(r_sp[player][n] - np.mean(r_sp[player][n-w+1:n+1]))
-
-    s_dp_win = {player: np.array(vals) for player, vals in s_dp_win.items()}
-    s_nr_win = {player: np.array(vals) for player, vals in s_nr_win.items()}
-    s_sp_win = {player: np.array(vals) for player, vals in s_sp_win.items()}
-
-    return r_dp, r_nr, r_sp, s_dp_win, s_nr_win, s_sp_win, A_dp, A_nr, A_sp, t_dp, t_nr, t_sp
-
-# combined loss: weighted (sum of mse s pred vs s true) AND (mse of pairwise asynchronies)
-weight = 1.0
-def combined_loss(r_dict, s_win, A, w, KF_func, params, weight=weight):
-    sigma_w = params['sigma_w']
-    sigma_v = params['sigma_v']
-    sigma_alpha = params.get('sigma_alpha', 0.3)
-    alpha_init = params.get('alpha_init', 0.25)
-
-    K = len(s_win)
-    players = [str(k) for k in range(1, K + 1)]
-
-    Sigma_v = np.diag([sigma_v] * K)
-    Sigma_alpha = np.diag([sigma_alpha] * (K * (K - 1)))
-
-    s_hat, _, _ = KF_func(
-        s=s_win,
-        A=A,
-        Sigma_v_init=Sigma_v,
-        Sigma_w=sigma_w,
-        alpha_KF_init=[alpha_init] * (K * (K - 1)),
-        Sigma_alpha_init=Sigma_alpha,
-        w=w
-    )
-
-   # mse for s timeseries
-    mse_s = []
-    for p in players:
-        pred = np.roll(s_hat[p], 1)
-        mask = ~np.isnan(pred) & ~np.isnan(r_dict[p])
-        mse = np.mean((pred[mask] - r_dict[p][mask]) ** 2)
-        mse_s.append(mse)
-
-    # mse for asynchronies (pairwise)
-    r_est = ensemble_backend.r_from_s_ensemble(s_hat, r_dict, w)
-    pairs = [str(i) + str(j) for i in players for j in players if i != j]
-
-    mse_async = []
-    for pair in pairs:
-        true_A = A[pair]
-        pred_A = r_est[pair[0]] - r_est[pair[1]]
-        mask = ~np.isnan(true_A) & ~np.isnan(pred_A)
-        mse = np.mean((pred_A[mask] - true_A[mask]) ** 2)
-        mse_async.append(mse)
-
-    # weighted sum of each mse
-    mse_per_player = [s + weight * a for s, a in zip(mse_s, mse_async[:len(players)])]
-
-    # return dict for consistency with likelihood_loss
-    return dict(zip(players, mse_per_player))
-
+# def process_ensemble_data(leader, rep, w, filepath=filename):
+#     virtuoso = pd.read_csv(filepath)
+#
+#     N = 46
+#     K = 4
+#
+#     ioi_cols = ['ioi' + str(k) for k in range(N)]
+#     players = [str(k) for k in range(1, K + 1)]
+#     pairs = [str(k1) + str(k2) for k1 in range(1, K + 1) for k2 in range(1, K + 1) if k1 != k2]
+#
+#     r_dp = virtuoso[(virtuoso['condition'] == 'DP') & (virtuoso['leader'] == leader) & (virtuoso['repetition'] == rep)][ioi_cols].values
+#     r_nr = virtuoso[(virtuoso['condition'] == 'NR') & (virtuoso['leader'] == leader) & (virtuoso['repetition'] == rep)][ioi_cols].values
+#     r_sp = virtuoso[(virtuoso['condition'] == 'SP') & (virtuoso['leader'] == leader) & (virtuoso['repetition'] == rep)][ioi_cols].values
+#
+#     aux = np.empty((4, 2))
+#     aux.fill(np.nan)
+#     r_dp = dict(zip(players, np.hstack((aux, r_dp))))
+#     r_nr = dict(zip(players, np.hstack((aux, r_nr))))
+#     r_sp = dict(zip(players, np.hstack((aux, r_sp))))
+#
+#     t_dp = {player: np.hstack((np.nan, 0, r_dp[player][2:].cumsum())) for player in players}
+#     t_nr = {player: np.hstack((np.nan, 0, r_nr[player][2:].cumsum())) for player in players}
+#     t_sp = {player: np.hstack((np.nan, 0, r_sp[player][2:].cumsum())) for player in players}
+#
+#     A_dp = {pair: t_dp[pair[0]] - t_dp[pair[1]] for pair in pairs}
+#     A_nr = {pair: t_nr[pair[0]] - t_nr[pair[1]] for pair in pairs}
+#     A_sp = {pair: t_sp[pair[0]] - t_sp[pair[1]] for pair in pairs}
+#
+#     s_dp_win = {player: 2*[np.nan] for player in players}
+#     s_nr_win = {player: 2*[np.nan] for player in players}
+#     s_sp_win = {player: 2*[np.nan] for player in players}
+#
+#     for n in range(2, N + 2):
+#         for player in players:
+#             if n <= w:
+#                 s_dp_win[player].append(r_dp[player][n] - np.mean(r_dp[player][2:n+1]))
+#                 s_nr_win[player].append(r_nr[player][n] - np.mean(r_nr[player][2:n+1]))
+#                 s_sp_win[player].append(r_sp[player][n] - np.mean(r_sp[player][2:n+1]))
+#             else:
+#                 s_dp_win[player].append(r_dp[player][n] - np.mean(r_dp[player][n-w+1:n+1]))
+#                 s_nr_win[player].append(r_nr[player][n] - np.mean(r_nr[player][n-w+1:n+1]))
+#                 s_sp_win[player].append(r_sp[player][n] - np.mean(r_sp[player][n-w+1:n+1]))
+#
+#     s_dp_win = {player: np.array(vals) for player, vals in s_dp_win.items()}
+#     s_nr_win = {player: np.array(vals) for player, vals in s_nr_win.items()}
+#     s_sp_win = {player: np.array(vals) for player, vals in s_sp_win.items()}
+#
+#     return r_dp, r_nr, r_sp, s_dp_win, s_nr_win, s_sp_win, A_dp, A_nr, A_sp, t_dp, t_nr, t_sp
 
 # OPTIMISE BY LOOPING THROUGH ALL CASES #
 
@@ -137,6 +86,7 @@ leaders = ['VN1', 'VN2']
 repetitions = range(1, 13)
 window_sizes = [2, 3, 5, 8, 10] # could loop through these later; runtime long
 w = 5
+weight = 1.0
 
 results = []
 for leader in leaders:
@@ -144,7 +94,7 @@ for leader in leaders:
 
         # all condition data once per leader, rep, w
         r_dp, r_nr, r_sp, s_dp_win, s_nr_win, s_sp_win, A_dp, A_nr, A_sp, t_dp, t_nr, t_sp = \
-            process_ensemble_data(leader=leader, rep=rep, w=w)
+            ensemble_backend.process_ensemble_data(leader=leader, rep=rep, w=w)
 
         # condition dict
         condition_data = {
@@ -173,7 +123,7 @@ for leader in leaders:
                     'sigma_alpha': sigma_alpha,
                     'alpha_init': alpha_init
                 }
-                loss_dict = combined_loss(r_data, s_win, A, w, ensemble_backend.KF_ensemble_2, params_dict, weight=weight)
+                loss_dict = ensemble_backend.combined_loss(r_data, s_win, A, w, ensemble_backend.KF_ensemble_2, params_dict, weight=weight)
                 return np.mean(list(loss_dict.values()))
 
             def obj_ll(params):
@@ -186,7 +136,7 @@ for leader in leaders:
                     'sigma_alpha': sigma_alpha,
                     'alpha_init': alpha_init
                 }
-                loss_dict = likelihood_loss(r_data, s_win, A, w, ensemble_backend.KF_ensemble_2, params_dict)
+                loss_dict = ensemble_backend.likelihood_loss(r_data, s_win, A, w, ensemble_backend.KF_ensemble_2, params_dict)
                 return np.mean(list(loss_dict.values()))
 
             # optimisations & bounds
@@ -495,7 +445,7 @@ params_opt_ll_sp = df_results[(df_results['leader'] == leader) & (df_results['re
 params_init = {'sigma_w': 0.1, 'sigma_v': 40, 'sigma_alpha': 0.3, 'alpha_init': 0.25}
 
 # initialise for case
-r_dp, r_nr, r_sp, s_dp_win, s_nr_win, s_sp_win, A_dp, A_nr, A_sp, _, _, _ = process_ensemble_data(leader=leader, rep=rep, w=w)
+r_dp, r_nr, r_sp, s_dp_win, s_nr_win, s_sp_win, A_dp, A_nr, A_sp, _, _, _ = ensemble_backend.process_ensemble_data(leader=leader, rep=rep, w=w)
 
 conditions_data = {
     'DP': {'r_data': r_dp, 's_data': s_dp_win, 'A': A_dp, 'opt_combined': {'sigma_w': params_opt_pred_dp[0], 'sigma_v': params_opt_pred_dp[1]}, 'opt_ll': {'sigma_w': params_opt_ll_dp[0], 'sigma_v': params_opt_ll_dp[1]}},
@@ -705,7 +655,7 @@ for cond in conds:
                 'alpha_init': 0.25 # fixed
             }
             try:
-                loss_dict = combined_loss(r_data, s_data, A, w, KF_ensemble, params_test, weight=weight)
+                loss_dict = ensemble_backend.combined_loss(r_data, s_data, A, w, ensemble_backend.KF_ensemble_2, params_test, weight=weight)
                 loss_grid[i, j] = np.nanmean(list(loss_dict.values()))
             except np.linalg.LinAlgError:
                 pass  # leave nan for unstable combos
@@ -744,7 +694,7 @@ for i, s_alpha in enumerate(sigma_alpha_values):
             'alpha_init': alpha_init
         }
         try:
-            loss_dict = combined_loss(r_data, s_data, A, w, ensemble_backend.KF_ensemble_2, params_test)
+            loss_dict = ensemble_backend.combined_loss(r_data, s_data, A, w, ensemble_backend.KF_ensemble_2, params_test)
             loss_grid[i, j] = np.nanmean(list(loss_dict.values()))
         except np.linalg.LinAlgError:
             pass  # leave nan for unstable combos

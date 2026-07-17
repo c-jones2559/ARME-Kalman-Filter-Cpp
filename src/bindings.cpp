@@ -462,4 +462,57 @@ m.def("metrics_ensemble", [](std::unordered_map<std::string, PyInArr> py_s_pred,
         return py_r_est;
         
     }, "Reconstruct r from estimated s", py::arg("s_est"), py::arg("r"), py::arg("w") = 5);
+
+    m.def("likelihood_loss", [](std::unordered_map<std::string, std::vector<double>> r_dict,
+                                std::unordered_map<std::string, std::vector<double>> s_win,
+                                std::unordered_map<std::string, std::vector<double>> A,
+                                double w,
+                                std::unordered_map<std::string, double> params) {
+        
+        return likelihood_loss(r_dict, s_win, A, w, KF_ensemble_2, params);
+        
+    }, "Calculates likelihood loss utilizing the KF_ensemble_2 routine",
+       py::arg("r_dict"), py::arg("s_win"), py::arg("A"), py::arg("w"), py::arg("params"));
+
+    m.def("combined_loss", [](std::unordered_map<std::string, std::vector<double>> r_dict,
+                              std::unordered_map<std::string, std::vector<double>> s_win,
+                              std::unordered_map<std::string, std::vector<double>> A,
+                              double w,
+                              std::unordered_map<std::string, double> params,
+                              double weight) {
+        
+        return combined_loss(r_dict, s_win, A, w, KF_ensemble_2, params, weight);
+        
+    }, "Calculates combined loss utilizing the KF_ensemble_2 routine", 
+       py::arg("r_dict"), py::arg("s_win"), py::arg("A"), py::arg("w"), py::arg("params"), py::arg("weight") = 1.0);
+
+    m.def("process_ensemble_data", [](std::string leader, int rep, int w) {
+        
+        auto result = process_ensemble_data(leader, rep, w);
+        
+        // Helper lambda to translate the maps back to Python
+        auto map_nc_to_py = [](const std::unordered_map<std::string, nc::NdArray<double>>& in_map) {
+            py::dict out;
+            for (const auto& kv : in_map) {
+                out[py::str(kv.first)] = nc_to_py(kv.second);
+            }
+            return out;
+        };
+        
+        return py::make_tuple(
+            map_nc_to_py(std::get<0>(result)), // r_dp
+            map_nc_to_py(std::get<1>(result)), // r_nr
+            map_nc_to_py(std::get<2>(result)), // r_sp
+            map_nc_to_py(std::get<3>(result)), // s_dp_win_arr
+            map_nc_to_py(std::get<4>(result)), // s_nr_win_arr
+            map_nc_to_py(std::get<5>(result)), // s_sp_win_arr
+            map_nc_to_py(std::get<6>(result)), // A_dp
+            map_nc_to_py(std::get<7>(result)), // A_nr
+            map_nc_to_py(std::get<8>(result)), // A_sp
+            map_nc_to_py(std::get<9>(result)), // t_dp
+            map_nc_to_py(std::get<10>(result)), // t_nr
+            map_nc_to_py(std::get<11>(result))  // t_sp
+        );
+    }, "Processes virtuoso ensemble data", 
+       py::arg("leader"), py::arg("rep"), py::arg("w") = 5);
 }

@@ -128,3 +128,32 @@ Estimates estimate_ensemble(
 std::tuple<std::unordered_map<std::string, std::vector<nc::NdArray<double>>>,
            std::unordered_map<std::string, nc::NdArray<double>>> 
 make_avg_alpha_ensemble(std::vector<std::unordered_map<std::string, std::unordered_map<std::string, std::vector<double>>>> estimates);
+
+using KF2_Pointer = std::tuple<std::unordered_map<std::string, nc::NdArray<double>>, 
+                               std::vector<nc::NdArray<double>>, 
+                               double> 
+    (*)(const std::unordered_map<std::string, nc::NdArray<double>>&,
+        const std::unordered_map<std::string, nc::NdArray<double>>&,
+        const nc::NdArray<double>&,
+        double,
+        nc::NdArray<double>,
+        nc::NdArray<double>,
+        bool,
+        double);
+
+std::unordered_map<std::string, double> likelihood_loss(
+    const std::unordered_map<std::string, std::vector<double>>& r_dict,
+    const std::unordered_map<std::string, std::vector<double>>& s_win,
+    const std::unordered_map<std::string, std::vector<double>>& A,
+    double w,
+    KF2_Pointer KF_func,
+    const std::unordered_map<std::string, double>& params);
+
+std::unordered_map<std::string, double> combined_loss(
+    const std::unordered_map<std::string, std::vector<double>>& r_dict,
+    const std::unordered_map<std::string, std::vector<double>>& s_win,
+    const std::unordered_map<std::string, std::vector<double>>& A,
+    double w,
+    KF2_Pointer KF_func,
+    const std::unordered_map<std::string, double>& params,
+    double weight = 1.0);

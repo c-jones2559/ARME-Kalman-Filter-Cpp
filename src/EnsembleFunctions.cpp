@@ -1248,3 +1248,146 @@ std::tuple<std::unordered_map<std::string, std::vector<nc::NdArray<double>>>,
 
     return {all_alpha, avg_alpha};
 }
+
+/*
+ * LOSS FUNCTIONS : RD
+ */
+
+// log-likelihood loss func
+std::unordered_map<std::string, double> likelihood_loss(const std::unordered_map<std::string, std::vector<double>>& r_dict,
+                                                        const std::unordered_map<std::string, std::vector<double>>& s_win,
+                                                        const std::unordered_map<std::string, std::vector<double>>& A,
+                                                        double w,
+                                                        KF2_Pointer KF_func,
+                                                        const std::unordered_map<std::string, double>& params) {
+    double sigma_w = params.at("sigma_w");
+    double sigma_v = params.at("sigma_v");
+    double sigma_alpha = params.contains("sigma_alpha") ? params.at("sigma_alpha") : 0.3;
+    double alpha_init = params.contains("alpha_init") ? params.at("alpha_init") : 0.25;
+
+    int K = s_win.size();
+    std::vector<std::string> players;
+    for (int i = 1; i <= K; i++) {
+        players.push_back(std::to_string(i));
+    }
+
+    nc::NdArray<double> Sigma_v = nc::eye<double>(K) * sigma_v;
+    nc::NdArray<double> Sigma_alpha = nc::eye<double>(K * (K - 1)) * sigma_alpha;
+
+    // Convert std::vector maps to nc::NdArray maps for KF_func compatibility
+    std::unordered_map<std::string, nc::NdArray<double>> s_win_nc, A_nc;
+    for (const auto& [k, v] : s_win) {
+        s_win_nc[k] = nc::NdArray<double>(v.begin(), v.end());
+    }
+    for (const auto& [k, v] : A) {
+         A_nc[k] = nc::NdArray<double>(v.begin(), v.end());
+    }
+
+    std::unordered_map<std::string, double> losses;
+    for (auto const& player : players) {
+        std::vector<double> arr_KF(K * (K - 1), alpha_init);
+        nc::NdArray<double> alpha_KF_init(arr_KF);
+
+        auto out = KF_func(s_win_nc, A_nc, Sigma_v, sigma_w, alpha_KF_init, Sigma_alpha, false, w);
+        double log_l = std::get<2>(out);
+        losses[player] = -log_l;
+    }
+
+    return losses;
+}
+
+// combined loss
+std::unordered_map<std::string, double> combined_loss(const std::unordered_map<std::string, std::vector<double>>& r_dict,
+                                                      const std::unordered_map<std::string, std::vector<double>>& s_win,
+                                                      const std::unordered_map<std::string, std::vector<double>>& A,
+                                                      double w,
+                                                      KF2_Pointer KF_func,
+                                                      const std::unordered_map<std::string, double>& params,
+                                                      double weight) {
+    double sigma_w = params.at("sigma_w");
+    double sigma_v = params.at("sigma_v");
+    double sigma_alpha = params.contains("sigma_alpha") ? params.at("sigma_alpha") : 0.3;
+    double alpha_init = params.contains("alpha_init") ? params.at("alpha_init") : 0.25;
+
+    int K = s_win.size();
+    std::vector<std::string> players;
+    for (int i = 1; i <= K; i++) {
+        players.push_back(std::to_string(i));
+    }
+
+    nc::NdArray<double> Sigma_v = nc::eye<double>(K) * sigma_v;
+    nc::NdArray<double> Sigma_alpha = nc::eye<double>(K * (K - 1)) * sigma_alpha;
+
+    std::vector<double> arr_KF(K * (K - 1), alpha_init);
+    nc::NdArray<double> alpha_KF_init(arr_KF);
+
+    std::unordered_map<std::string, nc::NdArray<double>> s_win_nc, A_nc;
+    for (const auto& [k, v] : s_win) {
+        s_win_nc[k] = nc::NdArray<double>(v.begin(), v.end());
+    }
+    for (const auto& [k, v] : A) {
+        A_nc[k] = nc::NdArray<double>(v.begin(), v.end());
+    }
+
+    auto out = KF_func(s_win_nc, A_nc, Sigma_v, sigma_w, alpha_KF_init, Sigma_alpha, false, w);
+    
+    std::unordered_map<std::string, nc::NdArray<double>> s_hat_map = std::get<0>(out);
+
+    // mse for s timeseries
+    std::vector<double> mse_s;
+    for (const auto& player : players) {
+        nc::NdArray<double> pred = nc::roll(s_hat_map.at(player), 1);
+        const auto& r_vec = r_dict.at(player);
+        double sum_sq_err = 0.0;
+        int valid_count = 0;
+
+        for (size_t i = 0; i < pred.size(); ++i) {
+            if (!std::isnan(pred[i]) && !std::isnan(r_vec[i])) {
+                double diff = pred[i] - r_vec[i];
+                sum_sq_err += diff * diff;
+                valid_count++;
+            }
+        }
+        mse_s.push_back(valid_count > 0 ? (sum_sq_err / valid_count) : std::numeric_limits<double>::quiet_NaN());
+    }
+
+    std::unordered_map<std::string, nc::NdArray<double>> r_dict_arr;
+    for (const auto& [key, value] : r_dict) {
+        r_dict_arr[key] = nc::NdArray<double>(value.begin(), value.end());
+    }
+
+    // mse for asynchronies
+    std::unordered_map<std::string, nc::NdArray<double>> r_est = r_from_s_ensemble(s_hat_map, r_dict_arr, static_cast<int>(w));
+    std::vector<std::string> pairs;
+    for (int i = 1; i <= K; i++) {
+        for (int j = 1; j <= K; j++) {
+            if (i == j) continue;
+            pairs.push_back({std::to_string(i) + std::to_string(j)});
+        }
+    }
+
+    std::vector<double> mse_async;
+    for (const auto& pair : pairs) {
+        nc::NdArray<double> true_A = A_nc.at(pair); // Use converted array
+        nc::NdArray<double> pred_A = r_est.at(pair.substr(0, 1)) - r_est.at(pair.substr(1, 1));
+
+        double sum_sq_err = 0.0;
+        int valid_count = 0;
+
+        for (size_t i = 0; i < true_A.size(); ++i) {
+            if (!std::isnan(true_A[i]) && !std::isnan(pred_A[i])) {
+                double diff = pred_A[i] - true_A[i];
+                sum_sq_err += diff * diff;
+                valid_count++;
+            }
+        }
+        mse_async.push_back(valid_count > 0 ? (sum_sq_err / valid_count) : std::numeric_limits<double>::quiet_NaN());
+    }
+
+    std::unordered_map<std::string, double> mse_map;
+    for (size_t i = 0; i < players.size(); ++i) {
+        mse_map[players[i]] = mse_s[i] + weight * mse_async[i];
+    }
+
+    return mse_map;
+}
