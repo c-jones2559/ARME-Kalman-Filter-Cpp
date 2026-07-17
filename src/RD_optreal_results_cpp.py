@@ -123,7 +123,7 @@ for leader in leaders:
                     'sigma_alpha': sigma_alpha,
                     'alpha_init': alpha_init
                 }
-                loss_dict = ensemble_backend.combined_loss(r_data, s_win, A, w, ensemble_backend.KF_ensemble_2, params_dict, weight=weight)
+                loss_dict = ensemble_backend.combined_loss(r_data, s_win, A, w, params_dict, weight=weight)
                 return np.mean(list(loss_dict.values()))
 
             def obj_ll(params):
@@ -136,7 +136,7 @@ for leader in leaders:
                     'sigma_alpha': sigma_alpha,
                     'alpha_init': alpha_init
                 }
-                loss_dict = ensemble_backend.likelihood_loss(r_data, s_win, A, w, ensemble_backend.KF_ensemble_2, params_dict)
+                loss_dict = ensemble_backend.likelihood_loss(r_data, s_win, A, w, params_dict)
                 return np.mean(list(loss_dict.values()))
 
             # optimisations & bounds
@@ -392,7 +392,7 @@ def pareto_curve(weights, r_data, s_data, A, w, init_guess, bounds):
         def obj(params):
             pdict = {'sigma_w':params[0],'sigma_v':params[1],
                      'sigma_alpha':params[2],'alpha_init':params[3]}
-            return np.mean(list(combined_loss(r_data, s_data, A, w, ensemble_backend.KF_ensemble_2, pdict, weight=wgt).values()))
+            return np.mean(list(ensemble_backend.combined_loss(r_data, s_data, A, w, pdict, weight=wgt).values()))
         res = minimize(obj, init_guess, bounds=bounds)
         losses.append(res.fun)
     plt.figure(figsize=(6,4))
@@ -462,7 +462,7 @@ print(f"Leader: {leader}, Repetition: {rep}, Window Size: {w}")
 # EXPT 1: compare r reconstructed with r true and calc % improvement in correlation (og vs opt cases)
 # EXPT 2: std of asynchronies for each pair, lag-1 autocorr of asynchronies for that pair
 metrics_comparison_results = []
-for loss_name, loss_func in zip(loss_types, [combined_loss, likelihood_loss]):
+for loss_name, loss_func in zip(loss_types, [ensemble_backend.combined_loss, ensemble_backend.likelihood_loss]):
     for cond, data in conditions_data.items():
         r_data, s_data, A = data['r_data'], data['s_data'], data['A']
 
@@ -655,7 +655,7 @@ for cond in conds:
                 'alpha_init': 0.25 # fixed
             }
             try:
-                loss_dict = ensemble_backend.combined_loss(r_data, s_data, A, w, ensemble_backend.KF_ensemble_2, params_test, weight=weight)
+                loss_dict = ensemble_backend.combined_loss(r_data, s_data, A, w, params_test, weight=weight)
                 loss_grid[i, j] = np.nanmean(list(loss_dict.values()))
             except np.linalg.LinAlgError:
                 pass  # leave nan for unstable combos
@@ -694,7 +694,7 @@ for i, s_alpha in enumerate(sigma_alpha_values):
             'alpha_init': alpha_init
         }
         try:
-            loss_dict = ensemble_backend.combined_loss(r_data, s_data, A, w, ensemble_backend.KF_ensemble_2, params_test)
+            loss_dict = ensemble_backend.combined_loss(r_data, s_data, A, w, params_test)
             loss_grid[i, j] = np.nanmean(list(loss_dict.values()))
         except np.linalg.LinAlgError:
             pass  # leave nan for unstable combos

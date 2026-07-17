@@ -157,3 +157,17 @@ std::unordered_map<std::string, double> combined_loss(
     KF2_Pointer KF_func,
     const std::unordered_map<std::string, double>& params,
     double weight = 1.0);
+
+std::tuple<std::unordered_map<std::string, nc::NdArray<double>>, 
+           std::unordered_map<std::string, nc::NdArray<double>>, 
+           std::unordered_map<std::string, nc::NdArray<double>>, 
+           std::unordered_map<std::string, nc::NdArray<double>>, 
+           std::unordered_map<std::string, nc::NdArray<double>>, 
+           std::unordered_map<std::string, nc::NdArray<double>>, 
+           std::unordered_map<std::string, nc::NdArray<double>>, 
+           std::unordered_map<std::string, nc::NdArray<double>>, 
+           std::unordered_map<std::string, nc::NdArray<double>>, 
+           std::unordered_map<std::string, nc::NdArray<double>>, 
+           std::unordered_map<std::string, nc::NdArray<double>>, 
+           std::unordered_map<std::string, nc::NdArray<double>>> 
+process_ensemble_data(std::string leader, int rep, int w);

@@ -469,22 +469,38 @@ m.def("metrics_ensemble", [](std::unordered_map<std::string, PyInArr> py_s_pred,
                                 double w,
                                 std::unordered_map<std::string, double> params) {
         
+        // Pass KF_ensemble_2 directly
         return likelihood_loss(r_dict, s_win, A, w, KF_ensemble_2, params);
         
     }, "Calculates likelihood loss utilizing the KF_ensemble_2 routine",
        py::arg("r_dict"), py::arg("s_win"), py::arg("A"), py::arg("w"), py::arg("params"));
 
-    m.def("combined_loss", [](std::unordered_map<std::string, std::vector<double>> r_dict,
-                              std::unordered_map<std::string, std::vector<double>> s_win,
-                              std::unordered_map<std::string, std::vector<double>> A,
-                              double w,
-                              std::unordered_map<std::string, double> params,
-                              double weight) {
+    m.def("combined_loss", [](std::unordered_map<std::string, PyInArr> py_r_dict,
+                            std::unordered_map<std::string, PyInArr> py_s_win,
+                            std::unordered_map<std::string, PyInArr> py_A,
+                            double w,
+                            std::unordered_map<std::string, double> params,
+                            double weight) {
         
+        // Convert inputs to the format expected by the logic function
+        std::unordered_map<std::string, std::vector<double>> r_dict, s_win, A;
+        
+        // Helper to convert PyInArr (NumPy) to std::vector<double>
+        auto to_vec = [](PyInArr arr) {
+            auto buf = arr.request();
+            double* ptr = static_cast<double*>(buf.ptr);
+            return std::vector<double>(ptr, ptr + buf.size);
+        };
+
+        for (auto& [k, v] : py_r_dict) r_dict[k] = to_vec(v);
+        for (auto& [k, v] : py_s_win)  s_win[k]  = to_vec(v);
+        for (auto& [k, v] : py_A)       A[k]      = to_vec(v);
+
+        // Call the logic function directly (it uses KF_ensemble_2 internally)
         return combined_loss(r_dict, s_win, A, w, KF_ensemble_2, params, weight);
         
-    }, "Calculates combined loss utilizing the KF_ensemble_2 routine", 
-       py::arg("r_dict"), py::arg("s_win"), py::arg("A"), py::arg("w"), py::arg("params"), py::arg("weight") = 1.0);
+    }, "Calculates combined loss", 
+        py::arg("r_dict"), py::arg("s_win"), py::arg("A"), py::arg("w"), py::arg("params"), py::arg("weight") = 1.0);
 
     m.def("process_ensemble_data", [](std::string leader, int rep, int w) {
         

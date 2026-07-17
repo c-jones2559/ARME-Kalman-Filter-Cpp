@@ -780,7 +780,7 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>, // r_dp,
            std::unordered_map<std::string, nc::NdArray<double>>> // t_sp
            process_ensemble_data(std::string leader, int rep, int w) { // w = 5
 
-    rapidcsv::Document virtuoso_doc("virtuoso.csv");
+    rapidcsv::Document virtuoso_doc("../virtuoso.csv");
     std::vector<std::string> condition_col = (virtuoso_doc.GetColumn<std::string>("condition"));
     std::vector<std::string> leader_col = (virtuoso_doc.GetColumn<std::string>("leader"));
     std::vector<int> repetition_col = (virtuoso_doc.GetColumn<int>("repetition"));
@@ -880,7 +880,7 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>, // r_dp,
     std::unordered_map<std::string, nc::NdArray<double>> t_dp;
     for (const auto& player : players) {
         t_dp[player] = nc::zeros<double>(1, r_dp.at(player).size());
-        for (int i = 0; i < r_dp.size(); i++) {
+        for (int i = 0; i < r_dp.at(player).size(); i++) {
             if (i == 0) t_dp[player][0] = nc::constants::nan;
             else if (i == 1) t_dp[player][1] = 0;
             else {
@@ -891,7 +891,7 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>, // r_dp,
     std::unordered_map<std::string, nc::NdArray<double>> t_nr;
     for (const auto& player : players) {
         t_nr[player] = nc::zeros<double>(1, r_nr.at(player).size());
-        for (int i = 0; i < r_nr.size(); i++) {
+        for (int i = 0; i < r_nr.at(player).size(); i++) {
             if (i == 0) t_nr[player][0] = nc::constants::nan;
             else if (i == 1) t_nr[player][1] = 0;
             else {
@@ -902,7 +902,7 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>, // r_dp,
     std::unordered_map<std::string, nc::NdArray<double>> t_sp;
     for (const auto& player : players) {
         t_sp[player] = nc::zeros<double>(1, r_sp.at(player).size());
-        for (int i = 0; i < r_sp.size(); i++) {
+        for (int i = 0; i < r_sp.at(player).size(); i++) {
             if (i == 0) t_sp[player][0] = nc::constants::nan;
             else if (i == 1) t_sp[player][1] = 0;
             else {
@@ -935,21 +935,23 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>, // r_dp,
 
     for (int n = 2; n < N+2; n++) {
         for (const auto& player : players) {
-            // adjust window / no window here
-            int bound;
-            if (n <= w) bound = 2;
-            else bound = n - w + 1;
+            int bound = (n <= w) ? 2 : (n - w + 1);
 
-            double sum_dp = std::accumulate(r_dp[player].begin(), r_dp[player].end(), 0.0);
-            double mean_dp = sum_dp / r_dp[player].size();
-            double sum_nr = std::accumulate(r_nr[player].begin(), r_nr[player].end(), 0.0);
-            double mean_nr = sum_nr / r_nr[player].size();
-            double sum_sp = std::accumulate(r_sp[player].begin(), r_sp[player].end(), 0.0);
-            double mean_sp = sum_sp / r_sp[player].size();
+            // Calculate exact slice mean and subtract it from the current onset
+            auto start_dp = r_dp[player].begin() + bound;
+            auto end_dp = r_dp[player].begin() + n + 1;
+            double mean_dp = std::accumulate(start_dp, end_dp, 0.0) / std::distance(start_dp, end_dp);
+            s_dp_win[player].push_back(r_dp[player][n] - mean_dp);
 
-            s_dp_win[player].push_back(mean_dp);
-            s_nr_win[player].push_back(mean_nr);
-            s_sp_win[player].push_back(mean_sp);
+            auto start_nr = r_nr[player].begin() + bound;
+            auto end_nr = r_nr[player].begin() + n + 1;
+            double mean_nr = std::accumulate(start_nr, end_nr, 0.0) / std::distance(start_nr, end_nr);
+            s_nr_win[player].push_back(r_nr[player][n] - mean_nr);
+
+            auto start_sp = r_sp[player].begin() + bound;
+            auto end_sp = r_sp[player].begin() + n + 1;
+            double mean_sp = std::accumulate(start_sp, end_sp, 0.0) / std::distance(start_sp, end_sp);
+            s_sp_win[player].push_back(r_sp[player][n] - mean_sp);
         }
     }
 
