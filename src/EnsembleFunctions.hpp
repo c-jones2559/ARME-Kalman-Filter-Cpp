@@ -5,6 +5,7 @@
 #include <string>
 #include <unordered_map>
 #include <tuple>
+
 #include <array>
 
 // Structs
@@ -60,6 +61,18 @@ std::tuple<std::vector<nc::NdArray<double>>,
            std::vector<nc::NdArray<double>>,
            std::vector<nc::NdArray<double>>>
 KF_ensemble(const std::unordered_map<std::string, nc::NdArray<double>>& s,
+            const std::unordered_map<std::string, nc::NdArray<double>>& A,
+            const nc::NdArray<double>& Sigma_v_init,
+            double Sigma_w,
+            nc::NdArray<double> alpha_KF_init,
+            nc::NdArray<double> Sigma_alpha_init,
+            bool est_Sigma_v = false,
+            double w = 5);
+
+std::tuple<std::unordered_map<std::string, nc::NdArray<double>>, 
+           std::vector<nc::NdArray<double>>, 
+           double> 
+KF_ensemble_2(const std::unordered_map<std::string, nc::NdArray<double>>& s,
             const std::unordered_map<std::string, nc::NdArray<double>>& A,
             const nc::NdArray<double>& Sigma_v_init,
             double Sigma_w,

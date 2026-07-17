@@ -349,6 +349,51 @@ m.def("KF_ensemble", [](std::unordered_map<std::string, PyInArr> py_s,
        py::arg("s"), py::arg("A"), py::arg("Sigma_v_init"), py::arg("Sigma_w") = 0.1,
        py::arg("alpha_KF_init"), py::arg("Sigma_alpha_init"), py::arg("est_Sigma_v") = false, py::arg("w") = 5.0);
 
+m.def("KF_ensemble_2", [](std::unordered_map<std::string, PyInArr> py_s,
+                              std::unordered_map<std::string, PyInArr> py_A,
+                              PyInArr py_Sigma_v_init,
+                              double Sigma_w,
+                              PyInArr py_alpha_KF_init,
+                              PyInArr py_Sigma_alpha_init,
+                              bool est_Sigma_v,
+                              double w) {
+        
+        std::unordered_map<std::string, nc::NdArray<double>> cpp_s;
+        for (auto& [k, v] : py_s) cpp_s[k] = py_to_nc(v);
+
+        std::unordered_map<std::string, nc::NdArray<double>> cpp_A;
+        for (auto& [k, v] : py_A) cpp_A[k] = py_to_nc(v);
+        
+        nc::NdArray<double> cpp_Sigma_v_init = py_to_nc(py_Sigma_v_init);
+        nc::NdArray<double> cpp_alpha_KF_init = py_to_nc(py_alpha_KF_init);
+        nc::NdArray<double> cpp_Sigma_alpha_init = py_to_nc(py_Sigma_alpha_init);
+
+        // Run the C++ function
+        auto result = KF_ensemble_2(cpp_s, cpp_A, cpp_Sigma_v_init, Sigma_w, cpp_alpha_KF_init, cpp_Sigma_alpha_init, est_Sigma_v, w);
+
+        // Local lambdas for translating the outputs back to Python
+        auto map_nc_to_py = [](const std::unordered_map<std::string, nc::NdArray<double>>& in_map) {
+            py::dict out;
+            for (const auto& kv : in_map) out[py::str(kv.first)] = nc_to_py(kv.second);
+            return out;
+        };
+        
+        auto vec_nc_to_py = [](const std::vector<nc::NdArray<double>>& in_vec) {
+            py::list out;
+            for (const auto& v : in_vec) out.append(nc_to_py(v));
+            return out;
+        };
+
+        // Tuple extraction matching the new return signature: map (0), vector (1), double (2)
+        return py::make_tuple(
+            map_nc_to_py(std::get<0>(result)),
+            vec_nc_to_py(std::get<1>(result)),
+            std::get<2>(result)
+        );
+    }, "Standalone KF_ensemble_2 wrapper",
+       py::arg("s"), py::arg("A"), py::arg("Sigma_v_init"), py::arg("Sigma_w") = 0.1,
+       py::arg("alpha_KF_init"), py::arg("Sigma_alpha_init"), py::arg("est_Sigma_v") = false, py::arg("w") = 5.0);
+
 m.def("metrics_ensemble", [](std::unordered_map<std::string, PyInArr> py_s_pred,
                                  std::unordered_map<std::string, PyInArr> py_s_ref) {
         
