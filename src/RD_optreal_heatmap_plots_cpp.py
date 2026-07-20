@@ -121,21 +121,12 @@ for leader in leaders:
             s_data = conditions_data[cond]['s_data']
             A = conditions_data[cond]['A']
 
-            # combined loss heatmap
-            loss_grid = np.full((len(sigma_v_values), len(sigma_w_values)), np.nan)
-
-            # Initialize the optimizer before hitting the heavy loops
-            K = 4 # Hardcoded for the Virtuoso dataset
+            # Initialize the optimizer
+            K = 4 
             kf_optimizer = ensemble_backend.KFOptimizer(s_data, A, r_data, s_data, K, w)
 
-            for i, sigma_v in enumerate(sigma_v_values):
-                for j, sigma_w in enumerate(sigma_w_values):
-                    try:
-                        # Call the C++ optimizer directly with fixed alpha values
-                        loss_val = kf_optimizer.combined_loss_eval(sigma_w, sigma_v, 0.3, 0.25, weight)
-                        loss_grid[i, j] = loss_val
-                    except Exception:
-                        pass  # unstable combos left as nan
+            # Calculate the entire grid in C++ with a single function call
+            loss_grid = kf_optimizer.combined_loss_grid(sigma_w_values, sigma_v_values, 0.3, 0.25, weight)
 
             # plot combined loss heatmap
             S_W, S_V = np.meshgrid(sigma_w_values, sigma_v_values)
