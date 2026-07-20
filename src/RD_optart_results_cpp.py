@@ -63,7 +63,7 @@ def run_single_experiment(K, N, sigma_v_true, alpha_type, ideal, optimize_flags,
     s_input = s_true if ideal else s_win
 
     # INITIALISE OPTIMIZER HERE (loads data into C++ memory once)
-    kf_optimizer = ensemble_backend.KFOptimizer(s_input, A, s_true, K, w)
+    kf_optimizer = ensemble_backend.KFOptimizer(s_input, A, r, s_true, K, w)
 
     s_win_values = np.concatenate([s_win[p][~np.isnan(s_win[p])] for p in players])
     s_v_init = np.nanstd(s_win_values)

@@ -119,7 +119,7 @@ def get_initial_params(opt_flags, K, n_alpha):
 # Initialise the C++ optimizer class ONCE before the optimize loop.
 # It pre-loads s_win, A, and s_true so they never cross the bridge again.
 s_input = s_win if realistic else s_true
-kf_optimizer = ensemble_backend.KFOptimizer(s_input, A, s_true, K, w)
+kf_optimizer = ensemble_backend.KFOptimizer(s_input, A, r, s_true, K, w)
 
 # Updated loss fct
 def loss_function(params, opt_flags):

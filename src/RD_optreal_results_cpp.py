@@ -111,33 +111,22 @@ for leader in leaders:
                 print(f"Skipping leader {leader}, rep {rep}, w {w}, condition {condition} — empty data")
                 continue
 
+            # Initialize the optimizer outside the objective functions
+            K = 4 # Hardcoded for the Virtuoso dataset
+            kf_optimizer = ensemble_backend.KFOptimizer(s_win, A, r_data, s_win, K, w)
 
             # objective funcs
             def obj_combined(params):
                 sigma_w, sigma_v, sigma_alpha, alpha_init = params
                 if sigma_w <= 0 or sigma_v <= 0 or sigma_alpha <= 0 or not (0 <= alpha_init <= 1):
                     return np.inf
-                params_dict = {
-                    'sigma_w': sigma_w,
-                    'sigma_v': sigma_v,
-                    'sigma_alpha': sigma_alpha,
-                    'alpha_init': alpha_init
-                }
-                loss_dict = ensemble_backend.combined_loss(r_data, s_win, A, w, params_dict, weight=weight)
-                return np.mean(list(loss_dict.values()))
+                return kf_optimizer.combined_loss_eval(sigma_w, sigma_v, sigma_alpha, alpha_init, weight)
 
             def obj_ll(params):
                 sigma_w, sigma_v, sigma_alpha, alpha_init = params
                 if sigma_w <= 0 or sigma_v <= 0 or sigma_alpha <= 0 or not (0 <= alpha_init <= 1):
                     return np.inf
-                params_dict = {
-                    'sigma_w': sigma_w,
-                    'sigma_v': sigma_v,
-                    'sigma_alpha': sigma_alpha,
-                    'alpha_init': alpha_init
-                }
-                loss_dict = ensemble_backend.likelihood_loss(r_data, s_win, A, w, params_dict)
-                return np.mean(list(loss_dict.values()))
+                return kf_optimizer.likelihood_loss_eval(sigma_w, sigma_v, sigma_alpha, alpha_init)
 
             # optimisations & bounds
             res_pred = minimize(obj_combined, [0.1, 40, 0.3, 0.25], bounds=[(1e-6, 1e4), (1, 1e6), (1e-5, 0.5), (0, 1)])
