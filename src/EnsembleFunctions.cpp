@@ -362,28 +362,34 @@ std::tuple<std::vector<nc::NdArray<double>>,
 
     // Initialise predictions for alpha (with NaN for n = 0 and n = 1)
     std::vector<nc::NdArray<double>> alpha_KF_predict;
+    alpha_KF_predict.reserve(N + 1);
     alpha_KF_predict.push_back(nc::full<double>(nc::Shape(P, 1), nc::constants::nan));
     alpha_KF_predict.push_back(nc::full<double>(nc::Shape(P, 1), nc::constants::nan));
 
     std::vector<nc::NdArray<double>> Sigma_alpha_KF_predict;
+    Sigma_alpha_KF_predict.reserve(N + 1);
     Sigma_alpha_KF_predict.push_back(nc::full<double>(nc::Shape(P, P), nc::constants::nan));
     Sigma_alpha_KF_predict.push_back(nc::full<double>(nc::Shape(P, P), nc::constants::nan));
 
     // Initialise predictions for s (with NaN for n = 0 and n = 1)
     std::vector<nc::NdArray<double>> s_KF_predict;
+    s_KF_predict.reserve(N + 1);
     s_KF_predict.push_back(nc::full<double>(nc::Shape(K, 1), nc::constants::nan));
     s_KF_predict.push_back(nc::full<double>(nc::Shape(K, 1), nc::constants::nan));
 
     std::vector<nc::NdArray<double>> Sigma_s_KF_predict;
+    Sigma_s_KF_predict.reserve(N + 1);
     Sigma_s_KF_predict.push_back(nc::full<double>(nc::Shape(K, K), nc::constants::nan));
     Sigma_s_KF_predict.push_back(nc::full<double>(nc::Shape(K, K), nc::constants::nan));
 
     // Initialise updates for alpha (with n = 0 and n = 1)
     std::vector<nc::NdArray<double>> gain_KF;
+    gain_KF.reserve(N + 1);
     gain_KF.push_back(nc::full<double>(nc::Shape(P, K), nc::constants::nan));
     gain_KF.push_back(nc::full<double>(nc::Shape(P, K), nc::constants::nan));
 
     std::vector<nc::NdArray<double>> alpha_KF_update;
+    alpha_KF_update.reserve(N + 1);
     alpha_KF_update.push_back(nc::full<double>(nc::Shape(P, 1), nc::constants::nan));
     
     // Reshape the 1D python array into a column vector
@@ -392,17 +398,20 @@ std::tuple<std::vector<nc::NdArray<double>>,
     alpha_KF_update.push_back(alpha_init_col);
 
     std::vector<nc::NdArray<double>> Sigma_alpha_KF_update;
+    Sigma_alpha_KF_update.reserve(N + 1);
     Sigma_alpha_KF_update.push_back(nc::full<double>(nc::Shape(P, P), nc::constants::nan));
     // Use the 2D diagonal matrix Python sent us directly
     Sigma_alpha_KF_update.push_back(Sigma_alpha_init);
 
     // Initialise dynamic estimation of sigma_v [TESTING] (with n = 0 and n = 1)
     std::vector<nc::NdArray<double>> Sigma_v;
+    Sigma_v.reserve(N + 1);
     Sigma_v.push_back(nc::full<double>(nc::Shape(K, K), nc::constants::nan));
     Sigma_v.push_back(Sigma_v_init);
 
     // Initialise matrix F
     std::vector<nc::NdArray<double>> F;
+    F.reserve(N + 1);
     F.push_back(nc::full<double>(nc::Shape(K, P), nc::constants::nan));
     F.push_back(nc::full<double>(nc::Shape(K, P), nc::constants::nan));
 
@@ -557,28 +566,34 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>,
 
     // Initialise predictions for alpha (with NaN for n = 0 and n = 1)
     std::vector<nc::NdArray<double>> alpha_KF_predict;
+    alpha_KF_predict.reserve(N + 1);
     alpha_KF_predict.push_back(nc::full<double>(nc::Shape(P, 1), nc::constants::nan));
     alpha_KF_predict.push_back(nc::full<double>(nc::Shape(P, 1), nc::constants::nan));
 
     std::vector<nc::NdArray<double>> Sigma_alpha_KF_predict;
+    Sigma_alpha_KF_predict.reserve(N + 1);
     Sigma_alpha_KF_predict.push_back(nc::full<double>(nc::Shape(P, P), nc::constants::nan));
     Sigma_alpha_KF_predict.push_back(nc::full<double>(nc::Shape(P, P), nc::constants::nan));
 
     // Initialise predictions for s (with NaN for n = 0 and n = 1)
     std::vector<nc::NdArray<double>> s_KF_predict;
+    s_KF_predict.reserve(N + 1);
     s_KF_predict.push_back(nc::full<double>(nc::Shape(K, 1), nc::constants::nan));
     s_KF_predict.push_back(nc::full<double>(nc::Shape(K, 1), nc::constants::nan));
 
     std::vector<nc::NdArray<double>> Sigma_s_KF_predict;
+    Sigma_s_KF_predict.reserve(N + 1);
     Sigma_s_KF_predict.push_back(nc::full<double>(nc::Shape(K, K), nc::constants::nan));
     Sigma_s_KF_predict.push_back(nc::full<double>(nc::Shape(K, K), nc::constants::nan));
 
     // Initialise updates for alpha (with n = 0 and n = 1)
     std::vector<nc::NdArray<double>> gain_KF;
+    gain_KF.reserve(N + 1);
     gain_KF.push_back(nc::full<double>(nc::Shape(P, K), nc::constants::nan));
     gain_KF.push_back(nc::full<double>(nc::Shape(P, K), nc::constants::nan));
 
     std::vector<nc::NdArray<double>> alpha_KF_update;
+    alpha_KF_update.reserve(N + 1);
     alpha_KF_update.push_back(nc::full<double>(nc::Shape(P, 1), nc::constants::nan));
     
     // Reshape the 1D python array into a column vector
@@ -587,57 +602,44 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>,
     alpha_KF_update.push_back(alpha_init_col);
 
     std::vector<nc::NdArray<double>> Sigma_alpha_KF_update;
+    Sigma_alpha_KF_update.reserve(N + 1);
     Sigma_alpha_KF_update.push_back(nc::full<double>(nc::Shape(P, P), nc::constants::nan));
     // Use the 2D diagonal matrix Python sent us directly
     Sigma_alpha_KF_update.push_back(Sigma_alpha_init);
 
     // Initialise dynamic estimation of sigma_v [TESTING] (with n = 0 and n = 1)
     std::vector<nc::NdArray<double>> Sigma_v;
+    Sigma_v.reserve(N + 1);
     Sigma_v.push_back(nc::full<double>(nc::Shape(K, K), nc::constants::nan));
     Sigma_v.push_back(Sigma_v_init);
 
     // Initialise matrix F
     std::vector<nc::NdArray<double>> F;
+    F.reserve(N + 1);
     F.push_back(nc::full<double>(nc::Shape(K, P), nc::constants::nan));
     F.push_back(nc::full<double>(nc::Shape(K, P), nc::constants::nan));
 
     double log_l = 0.0; // RD
 
+    // Put this BEFORE the n loop starts
+    nc::NdArray<double> bigF = nc::zeros<double>(K, P);
+
     for (int n = 2; n <= N; n++) {
-        // Build matrix F_n
-        std::vector<nc::NdArray<double>> F_list;
-        for (const auto& player1 : players) {
-            std::vector<double> A_i;
-            for (const auto& player2 : players) {
-                if (player2 != player1) {
-                    A_i.push_back(-A.at(player1 + player2)[n - 1]);
+        // Build matrix F_n directly (no F_list or intermediate allocations)
+        bigF.zeros(); // Reset the matrix for the current step
+        
+        int col_offset = 0;
+        for (int i = 0; i < K; i++) {
+            for (int j = 0; j < K; j++) {
+                if (i != j) {
+                    // Direct string lookup (or better yet, map to an int index)
+                    std::string pair_key = players[i] + players[j];
+                    bigF(i, col_offset) = -A.at(pair_key)[n - 1];
+                    col_offset++;
                 }
             }
-            F_list.push_back(nc::NdArray<double>(A_i));
         }
-
-        // block diag
-        int rows = 0, cols = 0;
-        for (const auto& list : F_list) {
-            rows += list.numRows();
-            cols += list.numCols();
-        }
-        nc::NdArray<double> bigF = nc::zeros<double>(rows, cols);
-
-        int rows_count = 0, cols_count = 0;
-        for (const auto& list : F_list) {
-            for (int i = 0; i < list.numRows(); i++) {
-                for (int j = 0; j < list.numCols(); j++) {
-                    bigF.at(i + rows_count, j + cols_count) =
-                        list.at(i, j);
-                }
-            }
-            rows_count += list.numRows();
-            cols_count += list.numCols();
-        }
-
         F.push_back(bigF);
-
 
         // Make vector with s at time n
         nc::NdArray<double> s_n_vec(K, 1);
@@ -655,8 +657,8 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>,
 
         // RD: Innovation
         nc::NdArray<double> innov = s_n_vec - s_KF_predict[n];
-        auto S = Sigma_s_KF_predict[n]; // Reuse the exact matrix you just computed
-        auto S_inv = nc::linalg::inv(S);
+        const auto& S = Sigma_s_KF_predict[n]; // Reuse the exact matrix you just computed
+        const auto& S_inv = nc::linalg::inv(S);
         
         // RD: Log-likelihood contribution
         double det_part = nc::log(nc::linalg::det(2 * nc::constants::pi * S));
@@ -664,7 +666,7 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>,
         log_l += -0.5 * (det_part + innov_part);
 
         // Update alpha
-        gain_KF.push_back(nc::dot(Sigma_alpha_KF_predict[n], nc::dot(F[n].transpose(), nc::linalg::inv(Sigma_s_KF_predict[n]))));
+        gain_KF.push_back(nc::dot(Sigma_alpha_KF_predict[n], nc::dot(F[n].transpose(), S_inv)));
         alpha_KF_update.push_back(alpha_KF_predict[n] + nc::dot(gain_KF[n], (s_n_vec - s_KF_predict[n])));
         Sigma_alpha_KF_update.push_back(Sigma_alpha_KF_predict[n] - nc::dot(gain_KF[n], nc::dot(F[n], Sigma_alpha_KF_predict[n])));
 
