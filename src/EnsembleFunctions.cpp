@@ -621,6 +621,7 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>,
 
     double log_l = 0.0; // RD
 
+    nc::NdArray<double> s_n_vec(K, 1);
     // Put this BEFORE the n loop starts
     nc::NdArray<double> bigF = nc::zeros<double>(K, P);
 
@@ -642,7 +643,7 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>,
         F.push_back(bigF);
 
         // Make vector with s at time n
-        nc::NdArray<double> s_n_vec(K, 1);
+        // nc::NdArray<double> s_n_vec(K, 1); // Allocated earlier so we can reuse the memory
         for (int i = 0; i < K; i++) {
             s_n_vec(i, 0) = s.at(players[i])[n]; 
         }
