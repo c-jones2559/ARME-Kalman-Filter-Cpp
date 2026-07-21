@@ -415,44 +415,29 @@ std::tuple<std::vector<nc::NdArray<double>>,
     F.push_back(nc::full<double>(nc::Shape(K, P), nc::constants::nan));
     F.push_back(nc::full<double>(nc::Shape(K, P), nc::constants::nan));
 
+    double log_l = 0.0; // RD
+
+    nc::NdArray<double> s_n_vec(K, 1);
+    // Put this BEFORE the n loop starts
+    nc::NdArray<double> bigF = nc::zeros<double>(K, P);
+
     for (int n = 2; n <= N; n++) {
-        // Build matrix F_n
-        std::vector<nc::NdArray<double>> F_list;
-        for (const auto& player1 : players) {
-            std::vector<double> A_i;
-            for (const auto& player2 : players) {
-                if (player2 != player1) {
-                    A_i.push_back(-A.at(player1 + player2)[n - 1]);
+        // Build matrix F_n directly (no F_list or intermediate allocations)
+        bigF.zeros(); // Reset the matrix for the current step
+        
+        int col_offset = 0;
+        for (int i = 0; i < K; i++) {
+            for (int j = 0; j < K; j++) {
+                if (i != j) {
+                    std::string pair_key = players[i] + players[j];
+                    bigF(i, col_offset) = -A.at(pair_key)[n - 1];
+                    col_offset++;
                 }
             }
-            F_list.push_back(nc::NdArray<double>(A_i));
         }
-
-        // block diag
-        int rows = 0, cols = 0;
-        for (const auto& list : F_list) {
-            rows += list.numRows();
-            cols += list.numCols();
-        }
-        nc::NdArray<double> bigF = nc::zeros<double>(rows, cols);
-
-        int rows_count = 0, cols_count = 0;
-        for (const auto& list : F_list) {
-            for (int i = 0; i < list.numRows(); i++) {
-                for (int j = 0; j < list.numCols(); j++) {
-                    bigF.at(i + rows_count, j + cols_count) =
-                        list.at(i, j);
-                }
-            }
-            rows_count += list.numRows();
-            cols_count += list.numCols();
-        }
-
         F.push_back(bigF);
 
-
         // Make vector with s at time n
-        nc::NdArray<double> s_n_vec(K, 1);
         for (int i = 0; i < K; i++) {
             s_n_vec(i, 0) = s.at(players[i])[n]; 
         }
@@ -462,16 +447,21 @@ std::tuple<std::vector<nc::NdArray<double>>,
         Sigma_alpha_KF_predict.push_back(Sigma_alpha_KF_update[n - 1] + Sigma_w);
 
         // Predict s
-        // if (n >= F.size() || n >= alpha_KF_predict.size()) {
-        //     std::cout << "n: " << n << std::endl;
-        //     std::cout << "F.size(): " << F.size() << std::endl;
-        //     std::cout << "alpha_KF_predict.size(): " << alpha_KF_predict.size() << std::endl;
-        // }
         s_KF_predict.push_back(nc::dot(F[n], alpha_KF_predict[n]));
         Sigma_s_KF_predict.push_back(nc::dot(F[n], nc::dot(Sigma_alpha_KF_predict[n], F[n].transpose())) + Sigma_v[n - 1]);
 
+        // RD: Innovation
+        nc::NdArray<double> innov = s_n_vec - s_KF_predict[n];
+        const auto& S = Sigma_s_KF_predict[n]; // Reuse the exact matrix you just computed
+        const auto& S_inv = nc::linalg::inv(S);
+        
+        // RD: Log-likelihood contribution
+        double det_part = nc::log(nc::linalg::det(2 * nc::constants::pi * S));
+        double innov_part = nc::dot(innov.transpose(), nc::dot(S_inv, innov)).item();
+        log_l += -0.5 * (det_part + innov_part);
+
         // Update alpha
-        gain_KF.push_back(nc::dot(Sigma_alpha_KF_predict[n], nc::dot(F[n].transpose(), nc::linalg::inv(Sigma_s_KF_predict[n]))));
+        gain_KF.push_back(nc::dot(Sigma_alpha_KF_predict[n], nc::dot(F[n].transpose(), S_inv)));
         alpha_KF_update.push_back(alpha_KF_predict[n] + nc::dot(gain_KF[n], (s_n_vec - s_KF_predict[n])));
         Sigma_alpha_KF_update.push_back(Sigma_alpha_KF_predict[n] - nc::dot(gain_KF[n], nc::dot(F[n], Sigma_alpha_KF_predict[n])));
 
@@ -633,7 +623,6 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>,
         for (int i = 0; i < K; i++) {
             for (int j = 0; j < K; j++) {
                 if (i != j) {
-                    // Direct string lookup (or better yet, map to an int index)
                     std::string pair_key = players[i] + players[j];
                     bigF(i, col_offset) = -A.at(pair_key)[n - 1];
                     col_offset++;
@@ -643,7 +632,6 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>,
         F.push_back(bigF);
 
         // Make vector with s at time n
-        // nc::NdArray<double> s_n_vec(K, 1); // Allocated earlier so we can reuse the memory
         for (int i = 0; i < K; i++) {
             s_n_vec(i, 0) = s.at(players[i])[n]; 
         }
