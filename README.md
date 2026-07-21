@@ -51,7 +51,7 @@ Note that the files you execute are still in Python, but they will call back end
 
 2. Clone this git repo.
 ```bash
-git clone https://github.com/c-jones2559/arme-kalman-filter
+git clone https://github.com/c-jones2559/arme-kalman-filter-cpp
 ```
 
 3. Create and navigate into the build folder:
