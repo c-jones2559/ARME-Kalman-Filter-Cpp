@@ -4,7 +4,6 @@ import time
 import sys
 import os
 
-# Map your test names to their respective paths
 TESTS = {
     'optreal': {'cpp': '../src/RD_optreal_results_cpp.py', 'py': '../oldPythonFiles/RD_optreal_results.py'},
     'heatmap': {'cpp': '../src/RD_optreal_heatmap_plots_cpp.py', 'py': '../oldPythonFiles/RD_optreal_heatmap_plots.py'},
