@@ -12,26 +12,26 @@ Note that the files you execute are still in Python, but they will call back end
 
 ### Project structure
 ```text
-├──  oldPythonFiles                       # Files from the old repo. Used in the test script for comparison.
-│   ├──  'Ensemble Functions.py'
-│   ├──  RD_optart_results.py
-│   ├──  RD_optimise.py
-│   ├──  RD_optreal_heatmap_plots.py
-│   └──  RD_optreal_results.py
-├── 󰣞 src
-│   ├──  bindings.cpp                     # The bridge which handles format conversions.
-│   ├──  EnsembleFunctions.cpp            # The core logic functions.
-│   ├──  EnsembleFunctions.hpp            # Header for the core functions.
-│   ├──  rapidcsv.h                       # Lightweight csv parser.
-│   ├──  RD_optart_results_cpp.py         # One of the original files, but now calls C++.
-│   ├──  RD_optimise_cpp.py               # One of the original files, but now calls C++.
-│   ├──  RD_optreal_heatmap_plots_cpp.py  # One of the original files, but now calls C++.
-│   └──  RD_optreal_results_cpp.py        # One of the original files, but now calls C++.
-├──  tests
-│   ├──  test.py                          # Testing suite to compare Python vs C++.
-├──  CMakeLists.txt                       # Compilation instructions.
-├── 󰂺 README.md                            # The file you're reading now!
-└──  virtuoso.csv                         # Sample dataset.
+├── oldPythonFiles                       # Files from the old repo. Used in the test script for comparison.
+│   ├── 'Ensemble Functions.py'
+│   ├── RD_optart_results.py
+│   ├── RD_optimise.py
+│   ├── RD_optreal_heatmap_plots.py
+│   └── RD_optreal_results.py
+├── src
+│   ├── bindings.cpp                     # The bridge which handles format conversions.
+│   ├── EnsembleFunctions.cpp            # The core logic functions.
+│   ├── EnsembleFunctions.hpp            # Header for the core functions.
+│   ├── rapidcsv.h                       # Lightweight csv parser.
+│   ├── RD_optart_results_cpp.py         # One of the original files, but now calls C++.
+│   ├── RD_optimise_cpp.py               # One of the original files, but now calls C++.
+│   ├── RD_optreal_heatmap_plots_cpp.py  # One of the original files, but now calls C++.
+│   └── RD_optreal_results_cpp.py        # One of the original files, but now calls C++.
+├── tests
+│   ├── test.py                          # Testing suite to compare Python vs C++.
+├── CMakeLists.txt                       # Compilation instructions.
+├── README.md                            # The file you're reading now!
+└── virtuoso.csv                         # Sample dataset.
 ```
 
 
