@@ -71,5 +71,4 @@ Testing/
 # Dependencies
 NumCpp/
 _deps/
-src/rapidcsv.h
 

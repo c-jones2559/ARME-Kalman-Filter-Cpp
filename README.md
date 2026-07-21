@@ -28,7 +28,7 @@ Note that the files you execute are still in Python, but they will call back end
 │   ├── RD_optreal_heatmap_plots_cpp.py  # One of the original files, but now calls C++.
 │   └── RD_optreal_results_cpp.py        # One of the original files, but now calls C++.
 ├── tests
-│   ├── test.py                          # Testing suite to compare Python vs C++.
+│   └── test.py                          # Testing suite to compare Python vs C++.
 ├── CMakeLists.txt                       # Compilation instructions.
 ├── README.md                            # The file you're reading now!
 └── virtuoso.csv                         # Sample dataset.
