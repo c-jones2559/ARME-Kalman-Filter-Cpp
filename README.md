@@ -8,7 +8,7 @@ Note that the files you execute are still in Python, but they will call back end
 ### Deviations from original project
 - The original files would execute in Google Colab after you uploaded the `virtuoso.csv` file, but this meant you couldn't run the files locally. This version takes in a command line argument to specify a file, which defaults to the local `virtuoso.csv` file if no argument is provided.
 - When you run the test script, it may appear frozen but it is just taking a while. The pure Python scripts usually take over 20 minutes to execute. The C++ ones usually take less than one minute.
-- The original scripts were `.ipynb` files. My current implementation uses `.py` files instead. This makes them easier to execute, but less pretty. Please see the instructions for converting these files below if you wish to change format.
+- The original scripts were `.ipynb` files, by current implementation uses `.py` files instead. This makes them easier to execute, easier to integrate with a back end, and able to be benchmarked automatically. If you'd prefer the notebook format, please see the instructions at the bottom of this file.
 
 ### Project structure
 ```text
@@ -37,6 +37,7 @@ Note that the files you execute are still in Python, but they will call back end
 
 
 ## Instructions
+These instructions were written for a Unix-based system, if you are using Windows or something else, the exact commands may vary.
 
 ### Dependencies
 - C++20 compatible compiler. (GCC, Clang, MSVC, etc.)
@@ -55,10 +56,22 @@ Note that the files you execute are still in Python, but they will call back end
 
 ### Building
 1. Ensure dependencies are installed.
+Ensure you have a C++20 compiler and CMake installed:
+- **Ubuntu/Debian:** `sudo apt install build-essential cmake`
+- **Arch Linux:** `sudo pacman -S base-devel cmake`
+- **Fedora/RHEL:** `sudo dnf install @development-tools cmake`
+- **macOS:** `brew install cmake` (and Xcode Command Line Tools via `xcode-select --install`)
+
+Python-dev, Boost and OpenBLAS can be installed with the following commands:
+* **Ubuntu/Debian**: `sudo apt update && sudo apt install libboost-all-dev libopenblas-dev python3-dev`
+* **Arch Linux**: `sudo pacman -S boost openblas python`
+* **Fedora/RHEL**: `sudo dnf install boost-devel openblas-devel python3-devel`
+* **macOS (Homebrew)**: `brew install boost openblas python`
+
 Python modules can be installed via pip like this:
 ```bash
 python3 -m venv venv
-source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -82,6 +95,7 @@ If you did not install OpenBLAS, use the following command instead.
 cmake -DUSE_OPENBLAS=OFF ..
 cmake --build .
 ```
+This will output the shared object file in `src/`.
 
 5. You can now call the C++ functions in a Python script by importing them. See the Python scripts in `src/` for examples on how I did this.
 
