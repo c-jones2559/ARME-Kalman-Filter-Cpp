@@ -56,13 +56,13 @@ These instructions were written for Unix-based systems. While this can be built 
 
 ### Building
 1. Ensure dependencies are installed.
-Ensure you have a C++20 compiler and CMake installed:
+A C++20 compiler and CMake can be installed like this:
 - **Ubuntu/Debian:** `sudo apt install build-essential cmake`
 - **Arch Linux:** `sudo pacman -S base-devel cmake`
 - **macOS:** `brew install cmake` (and Xcode Command Line Tools via `xcode-select --install`)
 - **Windows:** Install Visual Studio (with C++ workload), along with CMake via winget (`winget install Kitware.CMake`)
 
-Python-dev, Boost and OpenBLAS can be installed with the following commands:
+Python-dev, Boost and OpenBLAS can be installed like this:
 - **Ubuntu/Debian**: `sudo apt update && sudo apt install libboost-all-dev libopenblas-dev python3-dev`
 - **Arch Linux**: `sudo pacman -S boost openblas python`
 - **macOS (Homebrew)**: `brew install boost openblas python`
@@ -80,7 +80,7 @@ pip install -r requirements.txt
 git clone https://github.com/c-jones2559/arme-kalman-filter-cpp
 ```
 
-3. Create and navigate into the build folder:
+3. Create and navigate into the build folder.
 ```bash
 mkdir build && cd build
 ```
@@ -103,7 +103,7 @@ This will output the shared object file in `src/`.
 If you want to run the test script:
 (Note: The test script has graphs disabled, but may still save graph files to disk.)
 
-The test script accepts three optional parameters:
+The test script accepts three optional parameters.
 -   `--test` (`-t`): Specifies which script to test.
     -   Options: `optart`, `optimise`, `optreal`, `heatmap`, `all` (default).
 -   `--mode` (`-m`): Specifies which language implementation to test.
@@ -148,7 +148,7 @@ All done in 1261.92 seconds.
 
 ### Individual scripts
 If you want to run an individual script: (This will open the graphs in new windows as they are created.)
-`RD_optreal_results_cpp` and `RD_optreal_heatmap_plots_cpp` accept an optional parameter: (The others do not.)
+`RD_optreal_results_cpp` and `RD_optreal_heatmap_plots_cpp` accept an optional parameter. (The others do not.)
 -   `--file` (`-f`): Specifies which dataset file to analyse.
     -   Options: `../virtuoso.csv` (default), or any other `.csv` file in the correct format.
 
