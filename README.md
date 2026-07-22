@@ -3,7 +3,7 @@
 ## Overview
 This repository consists of files from [this project](https://github.com/arme-project/ARME-Kalman-Filter-Model-Parameter-Tuning) which have been converted from Python to C++. Please see the original project for more details about the functionality of the files.
 
-Note that the files you execute are still in Python, but they will call back end functions in C++. This is so that all previous functionality with MatPlotLib graphs will be retained.
+Note that the files you execute are still in Python, but they will call back end functions in C++. This is so that all previous functionality with MatPlotLib graphs will be retained, whilst utilising the speed of C++.
 
 ### Deviations from original project
 - The original files would execute in Google Colab after you uploaded the `virtuoso.csv` file, but this meant you couldn't run the files locally. This version is hard-coded to use the local `virtuoso.csv` file. This can be changed in the future.
@@ -30,6 +30,7 @@ Note that the files you execute are still in Python, but they will call back end
 ├── tests
 │   └── test.py                          # Testing suite to compare Python vs C++.
 ├── CMakeLists.txt                       # Compilation instructions.
+├── CMakeLists-no-openblas.txt           # Compilation instructions for no OpenBLAS.
 ├── README.md                            # The file you're reading now!
 ├── requirements.txt                     # The required Python modules.
 └── virtuoso.csv                         # Sample dataset.
@@ -42,7 +43,12 @@ Note that the files you execute are still in Python, but they will call back end
 - C++20 compatible compiler. (gcc, clang, etc.)
 - CMake v3.14+
 - Python v3.10+
-- OpenBLAS
+- OpenBLAS (Optional, used for optimisation.)
+    - If you do not use OpenBLAS, you should first delete `CMakeLists.txt` and rename `CMakeLists-no-openblas.txt` to `CMakeLists.txt`.
+    ```bash
+    rm CMakeLists.txt
+    mv CMakeLists-no-openblas.txt CMakeLists.txt
+    ```
 - NumCpp (Automatically installed.)
 - PyBind11 (Automatically installed.)
 - Jupytext (Optional, used for converting to `.ipynb` files.)

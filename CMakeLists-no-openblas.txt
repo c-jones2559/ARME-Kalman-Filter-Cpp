@@ -1,0 +1,36 @@
+cmake_minimum_required(VERSION 3.14)
+project(NumCppProject LANGUAGES CXX)
+
+set(CMAKE_BUILD_TYPE Release)
+set(CMAKE_CXX_STANDARD 20)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
+include(FetchContent)
+
+FetchContent_Declare(
+    NumCpp
+    GIT_REPOSITORY https://github.com/dpilger26/NumCpp.git
+    GIT_TAG        Version_2.12.1
+)
+FetchContent_MakeAvailable(NumCpp)
+
+FetchContent_Declare(
+    pybind11
+    GIT_REPOSITORY https://github.com/pybind/pybind11.git
+    GIT_TAG        v2.13.6
+)
+FetchContent_MakeAvailable(pybind11)
+
+pybind11_add_module(ensemble_backend src/bindings.cpp src/EnsembleFunctions.cpp)
+
+target_compile_options(ensemble_backend PRIVATE -O3 -march=native -DNDEBUG)
+
+target_link_libraries(ensemble_backend PRIVATE 
+    NumCpp::NumCpp
+    pybind11::pybind11
+)
+
+set_target_properties(ensemble_backend PROPERTIES 
+    LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
