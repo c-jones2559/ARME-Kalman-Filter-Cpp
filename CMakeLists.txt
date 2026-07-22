@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.14)
 project(NumCppProject LANGUAGES CXX)
 
+option(USE_OPENBLAS "Use OpenBLAS for mathematical optimization" ON)
+
 set(CMAKE_BUILD_TYPE Release)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -22,20 +24,31 @@ FetchContent_Declare(
 )
 FetchContent_MakeAvailable(pybind11)
 
-find_package(PkgConfig REQUIRED)
-pkg_check_modules(OPENBLAS REQUIRED openblas)
+option(USE_OPENBLAS "Use OpenBLAS for mathematical optimization" ON)
 
 pybind11_add_module(ensemble_backend src/bindings.cpp src/EnsembleFunctions.cpp)
 
 target_compile_options(ensemble_backend PRIVATE -O3 -march=native -DNDEBUG)
-target_compile_definitions(ensemble_backend PRIVATE NUMCPP_USE_OPENBLAS)
 
-target_include_directories(ensemble_backend PRIVATE ${OPENBLAS_INCLUDE_DIRS})
-target_link_libraries(ensemble_backend PRIVATE 
-    NumCpp::NumCpp
-    pybind11::pybind11
-    ${OPENBLAS_LIBRARIES}
-)
+if(USE_OPENBLAS)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(OPENBLAS REQUIRED openblas)
+
+    target_compile_definitions(ensemble_backend PRIVATE NUMCPP_USE_OPENBLAS)
+    target_include_directories(ensemble_backend PRIVATE ${OPENBLAS_INCLUDE_DIRS})
+    target_link_libraries(ensemble_backend PRIVATE 
+        NumCpp::NumCpp
+        pybind11::pybind11
+        ${OPENBLAS_LIBRARIES}
+    )
+    message(STATUS "Building WITH OpenBLAS")
+else()
+    target_link_libraries(ensemble_backend PRIVATE 
+        NumCpp::NumCpp
+        pybind11::pybind11
+    )
+    message(STATUS "Building WITHOUT OpenBLAS")
+endif()
 
 set_target_properties(ensemble_backend PROPERTIES 
     LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/src"

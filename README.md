@@ -30,7 +30,6 @@ Note that the files you execute are still in Python, but they will call back end
 ├── tests
 │   └── test.py                          # Testing suite to compare Python vs C++.
 ├── CMakeLists.txt                       # Compilation instructions.
-├── CMakeLists-no-openblas.txt           # Compilation instructions for no OpenBLAS.
 ├── README.md                            # The file you're reading now!
 ├── requirements.txt                     # The required Python modules.
 └── virtuoso.csv                         # Sample dataset.
@@ -44,11 +43,6 @@ Note that the files you execute are still in Python, but they will call back end
 - CMake v3.14+
 - Python v3.10+
 - OpenBLAS (Optional, used for optimisation.)
-    - If you do not use OpenBLAS, you should first delete `CMakeLists.txt` and rename `CMakeLists-no-openblas.txt` to `CMakeLists.txt`.
-    ```bash
-    rm CMakeLists.txt
-    mv CMakeLists-no-openblas.txt CMakeLists.txt
-    ```
 - NumCpp (Automatically installed.)
 - PyBind11 (Automatically installed.)
 - Jupytext (Optional, used for converting to `.ipynb` files.)
@@ -74,6 +68,11 @@ mkdir build && cd build
 4. Compile the project. This will automatically fetch NumCpp and PyBind11.
 ```bash
 cmake ..
+cmake --build .
+```
+If you did not install OpenBLAS, use the following command instead.
+```bash
+cmake -DUSE_OPENBLAS=OFF ..
 cmake --build .
 ```
 
