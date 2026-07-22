@@ -39,14 +39,15 @@ Note that the files you execute are still in Python, but they will call back end
 ## Instructions
 
 ### Dependencies
-- C++20 compatible compiler. (gcc, clang, etc.)
+- C++20 compatible compiler. (GCC, Clang, MSVC, etc.)
 - CMake v3.14+
-- Python v3.10+
-- OpenBLAS (Optional, used for optimisation.)
-- NumCpp (Automatically installed.)
-- PyBind11 (Automatically installed.)
-- Jupytext (Optional, used for converting to `.ipynb` files.)
-- Python modules (Can be installed via `pip install -r requirements.txt`.):
+- Python v3.10+ (with Development Headers for PyBind11 compilation)
+- Boost
+- OpenBLAS (Optional, used for matrix optimisation)
+- NumCpp (Automatically installed)
+- PyBind11 (Automatically installed)
+- Jupytext (Optional, used for converting to `.ipynb` files)
+- Python modules:
     - NumPy
     - SciPy
     - MatPlotLib
@@ -54,6 +55,12 @@ Note that the files you execute are still in Python, but they will call back end
 
 ### Building
 1. Ensure dependencies are installed.
+Python modules can be installed via pip like this:
+```bash
+python3 -m venv venv
+source venv/bin/activate  # On Windows use `venv\Scripts\activate`
+pip install -r requirements.txt
+```
 
 2. Clone this git repo.
 ```bash
