@@ -37,7 +37,7 @@ Note that the files you execute are still in Python, but they will call back end
 
 
 ## Instructions
-These instructions were written for a Unix-based system, if you are using Windows or something else, the exact commands may vary.
+These instructions were written for Unix-based systems. While this can be built on Windows, the exact commands may vary, and dependency management will require adjustment.
 
 ### Dependencies
 - C++20 compatible compiler. (GCC, Clang, MSVC, etc.)
@@ -59,14 +59,14 @@ These instructions were written for a Unix-based system, if you are using Window
 Ensure you have a C++20 compiler and CMake installed:
 - **Ubuntu/Debian:** `sudo apt install build-essential cmake`
 - **Arch Linux:** `sudo pacman -S base-devel cmake`
-- **Fedora/RHEL:** `sudo dnf install @development-tools cmake`
 - **macOS:** `brew install cmake` (and Xcode Command Line Tools via `xcode-select --install`)
+- **Windows:** Install Visual Studio (with C++ workload), along with CMake via winget (`winget install Kitware.CMake`)
 
 Python-dev, Boost and OpenBLAS can be installed with the following commands:
-* **Ubuntu/Debian**: `sudo apt update && sudo apt install libboost-all-dev libopenblas-dev python3-dev`
-* **Arch Linux**: `sudo pacman -S boost openblas python`
-* **Fedora/RHEL**: `sudo dnf install boost-devel openblas-devel python3-devel`
-* **macOS (Homebrew)**: `brew install boost openblas python`
+- **Ubuntu/Debian**: `sudo apt update && sudo apt install libboost-all-dev libopenblas-dev python3-dev`
+- **Arch Linux**: `sudo pacman -S boost openblas python`
+- **macOS (Homebrew)**: `brew install boost openblas python`
+- **Windows**: Manual configuration via your preferred package manager (such as vcpkg) or pre-built binaries is required for Boost and OpenBLAS.
 
 Python modules can be installed via pip like this:
 ```bash
