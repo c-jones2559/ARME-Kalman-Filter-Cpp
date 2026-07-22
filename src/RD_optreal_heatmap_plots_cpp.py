@@ -20,6 +20,7 @@ import matplotlib as mpl
 import io
 from scipy.linalg import block_diag
 from scipy.optimize import minimize
+import argparse
 
 # import c++ functions
 import sys
@@ -40,8 +41,17 @@ mpl.rcParams.update({
     "ps.fonttype": 42,
 })
 
-# upload file
-filename = '../virtuoso.csv'
+# --- Parse command line arguments ---
+parser = argparse.ArgumentParser(description="Process ARME Kalman Filter ensemble data.")
+parser.add_argument(
+    "-f", "--file", 
+    type=str, 
+    default="../virtuoso.csv", 
+    help="Path to the virtuoso dataset CSV file"
+)
+args = parser.parse_args()
+
+filename = args.file
 
 def lag1_ac(x):
     x = np.asarray(x)
@@ -94,7 +104,8 @@ for leader in leaders:
         r_dp, r_nr, r_sp, s_dp, s_nr, s_sp, A_dp, A_nr, A_sp, _, _, _ = ensemble_backend.process_ensemble_data(
             leader=leader,
             rep=rep,
-            w=w
+            w=w,
+            filepath=filename
         )
 
         conditions_data = {

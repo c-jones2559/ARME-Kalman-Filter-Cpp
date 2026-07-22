@@ -170,4 +170,4 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>,
            std::unordered_map<std::string, nc::NdArray<double>>, 
            std::unordered_map<std::string, nc::NdArray<double>>, 
            std::unordered_map<std::string, nc::NdArray<double>>> 
-process_ensemble_data(std::string leader, int rep, int w);
+process_ensemble_data(std::string leader, int rep, int w = 5, std::string filepath = "../virtuoso.csv");

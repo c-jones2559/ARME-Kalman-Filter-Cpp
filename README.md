@@ -6,7 +6,7 @@ This repository consists of files from [this project](https://github.com/arme-pr
 Note that the files you execute are still in Python, but they will call back end functions in C++. This is so that all previous functionality with MatPlotLib graphs will be retained, whilst utilising the speed of C++.
 
 ### Deviations from original project
-- The original files would execute in Google Colab after you uploaded the `virtuoso.csv` file, but this meant you couldn't run the files locally. This version is hard-coded to use the local `virtuoso.csv` file. This can be changed in the future.
+- The original files would execute in Google Colab after you uploaded the `virtuoso.csv` file, but this meant you couldn't run the files locally. This version takes in a command line argument to specify a file, which defaults to the local `virtuoso.csv` file if no argument is provided.
 - When you run the test script, it may appear frozen but it is just taking a while. The pure Python scripts usually take over 20 minutes to execute. The C++ ones usually take less than one minute.
 - The original scripts were `.ipynb` files. My current implementation uses `.py` files instead. This makes them easier to execute, but less pretty. Please see the instructions for converting these files below if you wish to change format.
 
@@ -82,20 +82,22 @@ cmake --build .
 If you want to run the test script:
 *(Note: The test script has graphs disabled, but may still save graph files to disk.)*
 
-The script accepts two optional parameters:
+The test script accepts three optional parameters:
 *   `--test` (`-t`): Specifies which file to test.
     *   Options: `optart`, `optimise`, `optreal`, `heatmap`, `all` (default)
 *   `--mode` (`-m`): Specifies which language implementation to test.
     *   Options: `py`, `cpp`, `both` (default)
+*   `--file` (`-f`): Specifies which file to analyse
+    *   Options: `../virtuoso.csv` (default), or any other `.csv` file in the correct format.
 
 ```bash
 cd ../tests
-python test.py -t [test] -m [mode]
+python test.py -t [test] -m [mode] -f [file]
 ```
 
 Example output:
 ```text
-/arme-kalman-filter-cpp/tests $ python test.py -t all -m both
+/arme-kalman-filter-cpp/tests $ python test.py -t all -m both -f ../virtuoso.csv
 Starting benchmark...
 ----------------------------------------
 
@@ -125,9 +127,13 @@ All done in 1261.92 seconds.
 
 ### Individual scripts
 If you want to run an individual script: (This will open the graphs in new windows as they are created.)
+`RD_optreal_results_cpp` and `RD_optreal_heatmap_plots_cpp` accept an optional parameter: (The others do not.)
+*   `--file` (`-f`): Specifies which file to analyse
+    *   Options: `../virtuoso.csv` (default), or any other `.csv` file in the correct format.
+
 ```bash
 cd src
-python RD_optart_results_cpp.py
+python RD_optreal_results_cpp.py -f ../virtuoso.csv
 ```
 Available scripts: `RD_optart_results_cpp.py`, `RD_optimise_cpp.py`, `RD_optreal_results_cpp.py`, `RD_optreal_heatmap_plots_cpp.py`.
 

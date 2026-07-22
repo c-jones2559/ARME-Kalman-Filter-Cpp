@@ -603,8 +603,8 @@ PYBIND11_MODULE(ensemble_backend, m) {
     }, "Calculates combined loss", 
         py::arg("r_dict"), py::arg("s_win"), py::arg("A"), py::arg("w"), py::arg("params"), py::arg("weight") = 1.0);
 
-    m.def("process_ensemble_data", [](std::string leader, int rep, int w) {
-        auto result = process_ensemble_data(leader, rep, w);
+    m.def("process_ensemble_data", [](std::string leader, int rep, int w, std::string filepath) {
+        auto result = process_ensemble_data(leader, rep, w, filepath);
         auto map_nc_to_py = [](const std::unordered_map<std::string, nc::NdArray<double>>& in_map) {
             py::dict out;
             for (const auto& kv : in_map) {
@@ -628,6 +628,6 @@ PYBIND11_MODULE(ensemble_backend, m) {
             map_nc_to_py(std::get<11>(result))  // t_sp
         );
     }, "Processes virtuoso ensemble data", 
-       py::arg("leader"), py::arg("rep"), py::arg("w") = 5);
+       py::arg("leader"), py::arg("rep"), py::arg("w") = 5, py::arg("filepath") = "../virtuoso.csv");
 
 }

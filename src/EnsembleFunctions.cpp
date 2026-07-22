@@ -769,9 +769,9 @@ std::tuple<std::unordered_map<std::string, nc::NdArray<double>>, // r_dp,
            std::unordered_map<std::string, nc::NdArray<double>>, // t_dp
            std::unordered_map<std::string, nc::NdArray<double>>, // t_nr
            std::unordered_map<std::string, nc::NdArray<double>>> // t_sp
-           process_ensemble_data(std::string leader, int rep, int w) { // w = 5
+           process_ensemble_data(std::string leader, int rep, int w, std::string filepath) { // w = 5, filepath = "../virtuoso.csv"
 
-    rapidcsv::Document virtuoso_doc("../virtuoso.csv");
+    rapidcsv::Document virtuoso_doc(filepath);
     std::vector<std::string> condition_col = (virtuoso_doc.GetColumn<std::string>("condition"));
     std::vector<std::string> leader_col = (virtuoso_doc.GetColumn<std::string>("leader"));
     std::vector<int> repetition_col = (virtuoso_doc.GetColumn<int>("repetition"));
