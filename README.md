@@ -31,6 +31,7 @@ Note that the files you execute are still in Python, but they will call back end
 │   └── test.py                          # Testing suite to compare Python vs C++.
 ├── CMakeLists.txt                       # Compilation instructions.
 ├── README.md                            # The file you're reading now!
+├── requirements.txt                     # The required Python modules.
 └── virtuoso.csv                         # Sample dataset.
 ```
 
@@ -44,7 +45,12 @@ Note that the files you execute are still in Python, but they will call back end
 - OpenBLAS
 - NumCpp (Automatically installed.)
 - PyBind11 (Automatically installed.)
-- Jupytext (Optional.)
+- Jupytext (Optional, used for converting to `.ipynb` files.)
+- Python modules (Install via `pip install -r requirements.txt`):
+    - NumPy
+    - SciPy
+    - MatPlotLib
+    - Pandas
 
 ### Building
 1. Ensure dependencies are installed.
@@ -61,7 +67,8 @@ mkdir build && cd build
 
 4. Compile the project. This will automatically fetch NumCpp and PyBind11.
 ```bash
-cmake .. && make
+cmake ..
+cmake --build .
 ```
 
 5. You can now call the C++ functions in a Python script by importing them. See the Python scripts in `src/` for examples on how I did this.
@@ -83,6 +90,7 @@ python test.py -t [test] -m [mode]
 
 Example output:
 ```text
+/arme-kalman-filter-cpp/tests $ python test.py
 Starting benchmark...
 ----------------------------------------
 
