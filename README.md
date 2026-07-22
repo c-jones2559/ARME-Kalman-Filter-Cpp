@@ -127,17 +127,18 @@ All done in 1261.92 seconds.
 ### Individual scripts
 If you want to run an individual script: (This will open the graphs in new windows as they are created.)
 ```bash
-cd ../src
-python [RD_optart_results_cpp.py, RD_optimise_cpp.py, RD_optreal_results_cpp.py, RD_optreal_heatmap_plots_cpp.py]
+cd src
+python RD_optart_results_cpp.py
 ```
+Available scripts: `RD_optart_results_cpp.py`, `RD_optimise_cpp.py`, `RD_optreal_results_cpp.py`, `RD_optreal_heatmap_plots_cpp.py`.
 
 ### Conversions
 If you want to convert a `.py` file to `.ipynb`:
 ```bash
-jupytext --to ipynb your_script.py
+jupytext --to ipynb script.py
 ```
 If you want to convert an `.ipynb` file to `.py`:
 ```bash
-jupytext --to py your_notebook.ipynb
+jupytext --to py notebook.ipynb
 ```
 
