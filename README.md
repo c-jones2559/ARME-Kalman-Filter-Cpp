@@ -96,7 +96,7 @@ python test.py -t [test] -m [mode]
 
 Example output:
 ```text
-/arme-kalman-filter-cpp/tests $ python test.py
+/arme-kalman-filter-cpp/tests $ python test.py -t all -m both
 Starting benchmark...
 ----------------------------------------
 
