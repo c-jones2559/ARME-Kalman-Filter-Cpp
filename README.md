@@ -104,11 +104,11 @@ If you want to run the test script:
 (Note: The test script has graphs disabled, but may still save graph files to disk.)
 
 The test script accepts three optional parameters:
--   `--test` (`-t`): Specifies which file to test.
+-   `--test` (`-t`): Specifies which script to test.
     -   Options: `optart`, `optimise`, `optreal`, `heatmap`, `all` (default).
 -   `--mode` (`-m`): Specifies which language implementation to test.
     -   Options: `py`, `cpp`, `both` (default).
--   `--file` (`-f`): Specifies which dataset to analyse.
+-   `--file` (`-f`): Specifies which dataset file to analyse.
     -   Options: `../virtuoso.csv` (default), or any other `.csv` file in the correct format.
 
 ```bash
@@ -149,7 +149,7 @@ All done in 1261.92 seconds.
 ### Individual scripts
 If you want to run an individual script: (This will open the graphs in new windows as they are created.)
 `RD_optreal_results_cpp` and `RD_optreal_heatmap_plots_cpp` accept an optional parameter: (The others do not.)
--   `--file` (`-f`): Specifies which dataset to analyse.
+-   `--file` (`-f`): Specifies which dataset file to analyse.
     -   Options: `../virtuoso.csv` (default), or any other `.csv` file in the correct format.
 
 ```bash
