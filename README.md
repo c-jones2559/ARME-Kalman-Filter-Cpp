@@ -46,7 +46,7 @@ Note that the files you execute are still in Python, but they will call back end
 - NumCpp (Automatically installed.)
 - PyBind11 (Automatically installed.)
 - Jupytext (Optional, used for converting to `.ipynb` files.)
-- Python modules (Install via `pip install -r requirements.txt`):
+- Python modules (Can be installed via `pip install -r requirements.txt`.):
     - NumPy
     - SciPy
     - MatPlotLib
@@ -80,18 +80,18 @@ cmake --build .
 
 ### Test script
 If you want to run the test script:
-*(Note: The test script has graphs disabled, but may still save graph files to disk.)*
+(Note: The test script has graphs disabled, but may still save graph files to disk.)
 
 The test script accepts three optional parameters:
-*   `--test` (`-t`): Specifies which file to test.
-    *   Options: `optart`, `optimise`, `optreal`, `heatmap`, `all` (default)
-*   `--mode` (`-m`): Specifies which language implementation to test.
-    *   Options: `py`, `cpp`, `both` (default)
-*   `--file` (`-f`): Specifies which file to analyse
-    *   Options: `../virtuoso.csv` (default), or any other `.csv` file in the correct format.
+-   `--test` (`-t`): Specifies which file to test.
+    -   Options: `optart`, `optimise`, `optreal`, `heatmap`, `all` (default).
+-   `--mode` (`-m`): Specifies which language implementation to test.
+    -   Options: `py`, `cpp`, `both` (default).
+-   `--file` (`-f`): Specifies which dataset to analyse.
+    -   Options: `../virtuoso.csv` (default), or any other `.csv` file in the correct format.
 
 ```bash
-cd ../tests
+cd tests
 python test.py -t [test] -m [mode] -f [file]
 ```
 
@@ -128,8 +128,8 @@ All done in 1261.92 seconds.
 ### Individual scripts
 If you want to run an individual script: (This will open the graphs in new windows as they are created.)
 `RD_optreal_results_cpp` and `RD_optreal_heatmap_plots_cpp` accept an optional parameter: (The others do not.)
-*   `--file` (`-f`): Specifies which file to analyse
-    *   Options: `../virtuoso.csv` (default), or any other `.csv` file in the correct format.
+-   `--file` (`-f`): Specifies which dataset to analyse.
+    -   Options: `../virtuoso.csv` (default), or any other `.csv` file in the correct format.
 
 ```bash
 cd src
